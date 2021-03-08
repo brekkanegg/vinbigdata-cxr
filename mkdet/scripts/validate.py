@@ -183,15 +183,16 @@ class Validator(object):
             cls_sens = 0
             cls_spec = 0
 
+        det_pc = det_pc[:-1].mean()
+        det_rc = det_rc[:-1].mean()
+        det_fppi = det_fppi[:-1].mean()
+
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
-            "det_prec": det_pc.mean(),
-            "det_recl": det_rc.mean(),
-            "det_fppi": det_fppi.mean(),
-            "det_f1": 2
-            * det_pc.mean()
-            * det_rc.mean()
-            / (det_pc.mean() + det_rc.mean() + 1e-5),
+            "det_prec": det_pc,
+            "det_recl": det_rc,
+            "det_fppi": det_fppi,
+            "det_f1": 2 * det_pc * det_rc / (det_pc + det_rc + 1e-5),
             "cls_auc": cls_auc,
             "cls_sens": cls_sens,
             "cls_spec": cls_spec,
