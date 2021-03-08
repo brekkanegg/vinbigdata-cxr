@@ -1,0 +1,54 @@
+# @package _group_
+meta: EffDet
+model: 
+  name: EfficientDet
+  backbone: efficientnet-b4
+  cls: True
+  feat_start_layer: 1
+opts:
+  optimizer: adamw #adamw
+  learning_rate: 1e-4
+  beta1: 0.9
+  beta2: 0.999
+  scheduler: cosineWR #cosineWR #Null
+  warmup_epoch: 5
+  weight_decay: 5e-6
+loss:
+  pos_weight: 1
+  cls_weight: 0.1
+  dist_weight: 10
+  pos_th: 0.5
+  neg_th: 0.05
+inputs: 
+  image_size: 1024
+  min_size: 24
+  label: ribfracture
+  num_classes: 15
+  posneg_ratio: 1
+  augment: train_multi_augment12
+  use_normal: False
+  use_only_abnormal: False
+  label_smooth: 0.1
+train:
+  load_ckpt: Null
+  resume_train: False
+  max_epoch: 70
+  samples_per_epoch: Null
+  endurance: 20
+  display_interval: 4
+val:
+  ignore_epoch: -1
+  val_interval: 1
+  prob_ths: [0.5]
+  det_th: 0.1
+  nms_th: 0.05
+  iou_th: 0.15
+  best: det_f1  
+  ignore_normal: False
+test: 
+  prob_ths: [0.5, 0.6, 0.7]
+  iou_th: 0.15
+  save_mode: 'doc'  # 'concat', 'each'
+  # save_concat: True
+  # save_each: False
+  save_only_wrong: True
