@@ -96,7 +96,7 @@ class Writer(SummaryWriter):
 
             if i_pc == -1:
                 continue
-            ic = self.label2color[int(i_gtc)]
+            ic = self.label2color[int(i_pc)]
             x0, y0, x1, y1 = [int(ii) for ii in i_pb]
             w, h = (x1 - x0), (y1 - y0)
             rect = patches.Rectangle(
