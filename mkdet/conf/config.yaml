@@ -4,7 +4,7 @@ hydra:
       colorlog:
         format: "[%(blue)s%(name)s%(reset)s][%(log_color)s%(levelname)s%(reset)s] - %(message)s"
   run:
-    dir: "${save_dir}/${model.meta}/${model.inputs.label}/fold-${fold}_memo-${memo}"
+    dir: "${save_dir}/fold-${fold}_memo-${memo}"
 
 defaults:
   - model: effdet
