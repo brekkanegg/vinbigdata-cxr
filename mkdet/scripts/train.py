@@ -42,8 +42,6 @@ class Trainer(object):
 
         cfgs["save_dir"] = os.path.join(
             cfgs["save_dir"],
-            # cfgs["model"]["meta"],
-            # cfgs["model"]["inputs"]["label"],
             "_".join(specific_dir),
         )
         os.makedirs(cfgs["save_dir"], exist_ok=True)
