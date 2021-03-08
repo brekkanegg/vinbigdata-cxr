@@ -183,9 +183,9 @@ class Validator(object):
             cls_sens = 0
             cls_spec = 0
 
-        det_pc = det_pc[:-1].mean()
-        det_rc = det_rc[:-1].mean()
-        det_fppi = det_fppi[:-1].mean()
+        det_pc = det_pc[0, :-1].mean()
+        det_rc = det_rc[0, :-1].mean()
+        det_fppi = det_fppi[0, :-1].mean()
 
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
