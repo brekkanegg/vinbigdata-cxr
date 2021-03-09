@@ -50,6 +50,8 @@ class VIN(Dataset):
 
         self.pids = self.get_pids()
 
+        # TODO: val gt_df
+
     def get_pids(self):
 
         # FIXME: This is based on label distribution
@@ -75,6 +77,8 @@ class VIN(Dataset):
         elif self.mode == "val":
             pids = xs[val_index]
 
+        pids = [str(pid) for pid in pids]
+
         return pids
 
     def __len__(self):
@@ -85,14 +89,6 @@ class VIN(Dataset):
                 self.cfgs["model"]["train"]["samples_per_epoch"], len(self.pids)
             )
         return samples_per_epoch
-
-        # if self.cfgs["model"]["train"]["samples_per_epoch"] is None:
-        #     samples_per_epoch = len(self.pids)
-        # else:
-        #     samples_per_epoch = min(
-        #         self.cfgs["model"]["train"]["samples_per_epoch"], len(self.pids)
-        #     )
-        # return samples_per_epoch
 
     def __getitem__(self, index):
         """
@@ -105,8 +101,8 @@ class VIN(Dataset):
         # row = self.meta_df.loc[index]
 
         # FIXME:
-        if self.mode != "test":
-            file_path = self.data_dir + f"/png_1024/train/{pid}.png"
+
+        file_path = self.data_dir + f"/png_1024/{self.cfgs['run']}/{pid}.png"
 
         img = cv2.imread(file_path, -1)
         img = img.astype(np.float32)
@@ -203,7 +199,7 @@ class VIN(Dataset):
                 print("*data transform", t4 - t3)
 
         data = {}
-        data["fp"] = file_path
+        data["fp"] = pid
         data["img"] = img
         data["bbox"] = bboxes
 
@@ -242,19 +238,19 @@ class VIN(Dataset):
 # Helper Functions
 
 
-def filter_bbox(bbox):
+# def filter_bbox(bbox):
 
-    non_zero_coord = np.argwhere(mask != 0)
+#     non_zero_coord = np.argwhere(mask != 0)
 
-    margin = 0
-    y0 = np.clip(np.min(non_zero_coord[:, 0]) - margin, 0, mask.shape[0])
-    y1 = np.clip(np.max(non_zero_coord[:, 0]) + margin, 0, mask.shape[0])
-    x0 = np.clip(np.min(non_zero_coord[:, 1]) - margin, 0, mask.shape[1])
-    x1 = np.clip(np.max(non_zero_coord[:, 1]) + margin, 0, mask.shape[1])
+#     margin = 0
+#     y0 = np.clip(np.min(non_zero_coord[:, 0]) - margin, 0, mask.shape[0])
+#     y1 = np.clip(np.max(non_zero_coord[:, 0]) + margin, 0, mask.shape[0])
+#     x0 = np.clip(np.min(non_zero_coord[:, 1]) - margin, 0, mask.shape[1])
+#     x1 = np.clip(np.max(non_zero_coord[:, 1]) + margin, 0, mask.shape[1])
 
-    if (x0 <= x1) and (y0 <= y1):
-        # if ((x0 + 5) < x1) and ((y0 + 5) < y1):
-        return [x0, y0, x1, y1]
+#     if (x0 <= x1) and (y0 <= y1):
+#         # if ((x0 + 5) < x1) and ((y0 + 5) < y1):
+#         return [x0, y0, x1, y1]
 
 
 def calc_iou(bbox_a, bbox_b):
@@ -295,6 +291,7 @@ def check_overlap(bbox_a, bbox_b):
     return ov
 
 
+# TODO:
 def simple_nms(bboxes_coord, bboxes_cat, iou_th=0.4):
     bbox_sizes = np.array([(x1 - x0) * (y1 - y0) for (x0, y0, x1, y1) in bboxes_coord])
     order = bbox_sizes.argsort()[::-1]

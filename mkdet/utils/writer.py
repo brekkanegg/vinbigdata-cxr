@@ -56,8 +56,8 @@ class Writer(SummaryWriter):
         pred_class = pred_class[pred_idx]
         pred_bbox = pred_bbox[pred_idx]
 
-        csv_name = fp.split("png_1024/")[1].split("/")[0]
-        fp = fp.split("png_1024/")[1].replace("/", "-")
+        # csv_name = fp.split("png_1024/")[1].split("/")[0]
+        # fp = fp.split("png_1024/")[1].replace("/", "-")
         img_dir_name = "images" + save_mode
         if save_only_wrong:
             img_dir_name += "_wrong"
@@ -105,19 +105,19 @@ class Writer(SummaryWriter):
             plt.text(
                 x0,
                 y0,
-                f"{int(i_pc)}:{i_ps}",
+                f"{int(i_pc)}:{i_ps:.2f}",
                 bbox={"facecolor": ic, "alpha": 0.5, "pad": 0},
             )
             ax02.add_patch(rect)
 
-        if save_mode == "concat":
-            plt_dir = (
-                os.path.join(self.logdir, img_dir_name, csv_name, fp[:-4]) + "_plt.png"
-            )
-            os.makedirs(os.path.dirname(plt_dir), exist_ok=True)
-            plt.savefig(plt_dir)
-            plt.close(fig)
+        # if save_mode == "concat":
+        #     plt_dir = (
+        #         os.path.join(self.logdir, img_dir_name, csv_name, fp[:-4]) + "_plt.png"
+        #     )
+        #     os.makedirs(os.path.dirname(plt_dir), exist_ok=True)
+        #     plt.savefig(plt_dir)
+        #     plt.close(fig)
 
-        else:
-            self.add_figure("{}_img".format(mode), fig, iteration, close=True)
-            plt.close(fig)
+        # else:
+        self.add_figure("{}_img".format(mode), fig, iteration, close=True)
+        plt.close(fig)

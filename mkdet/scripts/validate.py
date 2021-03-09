@@ -1,6 +1,7 @@
 import os, sys
 import torch
 import numpy as np
+import pandas as pd
 import pickle
 import cv2
 from collections import OrderedDict
@@ -17,6 +18,7 @@ import utils
 import inputs
 import opts
 from metrics.metrics import evaluate
+from metrics.cocoeval import VinBigDataEval
 
 
 class Validator(object):
@@ -47,12 +49,48 @@ class Validator(object):
             sampler=val_sampler,
         )
 
+        self.meta_dict = self.val_loader.dataset.meta_dict
+        self.ims = self.cfgs["model"]["inputs"]["image_size"]
+
         self.do_logging = True
         if len(self.cfgs["gpu"]) > 1:
             if dist.get_rank() != 0:
                 self.do_logging = False
 
+        # Vin Eval
+        self.gt_dict = self.get_gt_dict()
+        self.vineval = VinBigDataEval(self.gt_dict)
+
+    # get dictionary with nms bbox results
+    def get_gt_dict(self):
+        temp_dict = {}
+        for data in tqdm(self.val_loader):
+            det_anns = data["bbox"].numpy()
+
+            for bi in range(len(data["fp"])):
+                bi_fp = data["fp"][bi]
+                bi_det_ann = det_anns[bi]
+                bi_det_ann = bi_det_ann[bi_det_ann[:, -1] != -1]
+
+                if len(bi_det_ann) == 0:
+                    temp_dict[bi_fp] = {"bbox": np.array([[0, 0, 1, 1, 14]])}
+                else:
+                    bi_dim0 = self.meta_dict[bi_fp]["dim0"]
+                    bi_dim1 = self.meta_dict[bi_fp]["dim1"]
+                    bi_det_ann[:, [0, 2]] *= bi_dim0 / self.ims
+                    bi_det_ann[:, [1, 3]] *= bi_dim1 / self.ims
+
+                    temp_dict[bi_fp] = {"bbox": np.round(bi_det_ann).astype(int)}
+                    # for bi_i_det_ann in bi_det_ann:
+                    #     temp_dict[bi_fp]["bbox"].append(
+                    #         list(bi_i_det_ann.astype(int)) + [1]
+                    #     )
+
+        return temp_dict
+
     def do_validate(self, model=None):
+
+        self.pred_dict = {}
 
         self.model = model.to(self.device)
 
@@ -74,7 +112,6 @@ class Validator(object):
             # NOTE: For various visualization, no difference in dataset
             # if not self.cfgs["model"]["val"]["ignore_normal"]:
             # self.val_loader.dataset.shuffle()
-
             # self.val_loader.dataset.meta_df = self.val_loader.dataset.abnormal_meta_df
 
             tqdm_able = (self.cfgs["run"] != "train") and self.do_logging
@@ -99,33 +136,39 @@ class Validator(object):
 
                 det_anns = data["bbox"].numpy()
 
-                # TODO: aux_classifier
-
                 viz_bi = 0
                 for bi in range(len(data["fp"])):
+                    bi_fp = data["fp"][bi]
+
+                    # Prediciton
                     bi_det_preds = logits["preds"][bi].detach().cpu().numpy()
+                    bi_det_preds = bi_det_preds[bi_det_preds[:, -1] != -1]
+
+                    # TODO: use aux_classifier for cls_pred
+                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi][0]).item()
+
                     if len(bi_det_preds) == 0:  # No pred bbox
-                        bi_det_preds = np.ones((1, 6)) * -1
-                        bi_cls_pred = 0
+                        # bi_det_preds = np.ones((1, 6)) * -1
+                        bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+                        # bi_cls_pred = 0
                     else:
+                        bi_dim0 = self.meta_dict[bi_fp]["dim0"]
+                        bi_dim1 = self.meta_dict[bi_fp]["dim1"]
+
                         bi_det_preds[:, -1] = 1 / (1 + np.exp(-1 * bi_det_preds[:, -1]))
-                        bi_cls_pred = np.max(bi_det_preds[:, -1])
+                        # bi_cls_pred = np.max(bi_det_preds[:, -1])
 
-                        # FIXME:
-                        # bi_cls_pred = (
-                        #     torch.sigmoid(logits["aux_cls"][bi])
-                        #     .detach()
-                        #     .cpu()
-                        #     .numpy()[0]
-                        # )
+                        bi_det_preds[:, [0, 2]] *= bi_dim0 / self.ims
+                        bi_det_preds[:, [1, 3]] *= bi_dim1 / self.ims
 
-                        # if bi_cls_pred_max > 0.1:
-                        #     bi_cls_pred_idx = np.argmax(bi_det_preds[:, -1], axis=-1)
-                        #     bi_cls_pred = bi_det_preds[:, 4][bi_cls_pred_idx]
-                        # else:
-                        #     bi_cls_pred = 0
+                        bi_det_preds = bi_det_preds.astype(int)
+
+                    self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
+
+                    # GT
 
                     bi_det_ann = det_anns[bi]
+                    bi_det_ann = bi_det_ann[bi_det_ann[:, -1] != -1]
                     (
                         bi_det_gt_num,
                         bi_det_pred_num,
@@ -133,7 +176,6 @@ class Validator(object):
                         bi_det_fp_num,
                     ) = evaluate(self.cfgs, bi_det_preds, bi_det_ann)
 
-                    # FIXME: remove .item() if multi-label case
                     det_gt_nums_tot += bi_det_gt_num
                     det_tp_nums_tot += bi_det_tp_num
                     # correct_nums_tot += correct_num
@@ -141,7 +183,7 @@ class Validator(object):
                     det_fp_nums_tot += bi_det_fp_num
 
                     cls_pred_tot.append(bi_cls_pred)
-                    cls_gt_tot.append(int(bi_det_ann[:, -1].max() > -1))
+                    cls_gt_tot.append(int(len(bi_det_ann) > 0))
 
             # for Visualization - abnormal
             for viz_bi in range(len(data["fp"])):
@@ -164,7 +206,8 @@ class Validator(object):
                 "ann": det_anns_viz,
             }
 
-        # NOTE: Reduce CPU-GPU Synchonization (.item() calls or printing CUDA tensors)
+        coco_evaluation = self.vineval.evaluate(self.pred_dict)
+
         det_pc = det_tp_nums_tot / (det_pred_nums_tot + 1e-5)
         det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)
         det_fppi = det_fp_nums_tot / (nums_tot + 1e-5)
@@ -183,6 +226,7 @@ class Validator(object):
             cls_sens = 0
             cls_spec = 0
 
+        # except class 14 - normal
         det_pc = det_pc[0, :-1].mean()
         det_rc = det_rc[0, :-1].mean()
         det_fppi = det_fppi[0, :-1].mean()
@@ -196,6 +240,7 @@ class Validator(object):
             "cls_auc": cls_auc,
             "cls_sens": cls_sens,
             "cls_spec": cls_spec,
+            "coco": coco_evaluation.stats[0],
         }
 
         return val_record, val_viz
@@ -211,3 +256,10 @@ def gather_helper(target):
     target = torch.cat(target_gather, 0)
 
     return target
+
+
+def pred2string(pred):
+    string = ""
+    for i in pred:
+        string += f" {i}"
+    return string

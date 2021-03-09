@@ -72,9 +72,11 @@ class AuxClassificationModel(nn.Module):
         self.conv1 = nn.Conv2d(
             num_channels, num_channels, kernel_size=1, stride=1, padding=0
         )
+        self.act1 = nn.ReLU()
         self.conv2 = nn.Conv2d(
             num_channels, num_channels, kernel_size=1, stride=1, padding=0
         )
+        self.act2 = nn.ReLU()
         self.logit = nn.Conv2d(num_channels, 1, kernel_size=1, stride=1, padding=0)
 
         self.init_weights()
@@ -90,7 +92,9 @@ class AuxClassificationModel(nn.Module):
     def forward(self, x):
         x = self.avg_pool(x)
         x = self.conv1(x)
+        x = self.act1(x)
         x = self.conv2(x)
+        x = self.act2(x)
         x = self.logit(x)
 
         return x
