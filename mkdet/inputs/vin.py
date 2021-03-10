@@ -156,10 +156,18 @@ class VIN(Dataset):
                 else:
                     # Resize
                     temp_bb = [None, None, None, None]
-                    temp_bb[0] = int(bx0 / pid_dimx * self.inputs_cfgs["image_size"])
-                    temp_bb[1] = int(by0 / pid_dimy * self.inputs_cfgs["image_size"])
-                    temp_bb[2] = int(bx1 / pid_dimx * self.inputs_cfgs["image_size"])
-                    temp_bb[3] = int(by1 / pid_dimy * self.inputs_cfgs["image_size"])
+                    temp_bb[0] = np.round(
+                        bx0 / pid_dimx * self.inputs_cfgs["image_size"]
+                    )
+                    temp_bb[1] = np.round(
+                        by0 / pid_dimy * self.inputs_cfgs["image_size"]
+                    )
+                    temp_bb[2] = np.round(
+                        bx1 / pid_dimx * self.inputs_cfgs["image_size"]
+                    )
+                    temp_bb[3] = np.round(
+                        by1 / pid_dimy * self.inputs_cfgs["image_size"]
+                    )
 
                     if (np.array(temp_bb) > self.inputs_cfgs["image_size"]).any():
                         a = 1

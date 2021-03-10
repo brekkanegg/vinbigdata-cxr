@@ -63,28 +63,40 @@ class Validator(object):
 
     # get dictionary with nms bbox results
     def get_gt_dict(self):
+        from inputs.vin import simple_nms
+
         temp_dict = {}
-        for data in tqdm(self.val_loader):
-            det_anns = data["bbox"].numpy()
+        for pid in tqdm(self.val_loader.dataset.pids):
 
-            for bi in range(len(data["fp"])):
-                bi_fp = data["fp"][bi]
-                bi_det_ann = det_anns[bi]
-                bi_det_ann = bi_det_ann[bi_det_ann[:, -1] != -1]
+            bboxes_coord = []
+            bboxes_cat = []
 
-                if len(bi_det_ann) == 0:
-                    temp_dict[bi_fp] = {"bbox": np.array([[0, 0, 1, 1, 14]])}
+            pid_info = self.meta_dict[pid]
+            pid_bbox = np.array(pid_info["bbox"])
+            # pid_bbox order: rad_id, finding, finding_id, bbox(x_min, y_min, x_max, y_max) - xyxy가로, 세로
+
+            for bb in pid_bbox:
+                bx0, by0, bx1, by1 = [float(i) for i in bb[-4:]]
+                bl = int(bb[2])
+                if bl == 14:
+                    continue
+                if (bx0 >= bx1) or (by0 >= by1):
+                    continue
                 else:
-                    bi_dim0 = self.meta_dict[bi_fp]["dim0"]
-                    bi_dim1 = self.meta_dict[bi_fp]["dim1"]
-                    bi_det_ann[:, [0, 2]] *= bi_dim0 / self.ims
-                    bi_det_ann[:, [1, 3]] *= bi_dim1 / self.ims
+                    bboxes_coord.append([bx0, by0, bx1, by1])
+                    bboxes_cat.append(bl)
 
-                    temp_dict[bi_fp] = {"bbox": np.round(bi_det_ann).astype(int)}
-                    # for bi_i_det_ann in bi_det_ann:
-                    #     temp_dict[bi_fp]["bbox"].append(
-                    #         list(bi_i_det_ann.astype(int)) + [1]
-                    #     )
+            # FIXME: simple_nms
+            if len(bboxes_coord) >= 2:
+                bboxes_coord, bboxes_cat = simple_nms(bboxes_coord, bboxes_cat)
+
+            bboxes = [list(b) + [c] for (b, c) in zip(bboxes_coord, bboxes_cat)]
+            bboxes = np.array(bboxes).astype(int)
+
+            if len(bboxes) == 0:
+                temp_dict[pid] = {"bbox": np.array([[0, 0, 1, 1, 14]])}
+            else:
+                temp_dict[pid] = {"bbox": bboxes}
 
         return temp_dict
 
@@ -113,7 +125,6 @@ class Validator(object):
             # if not self.cfgs["model"]["val"]["ignore_normal"]:
             # self.val_loader.dataset.shuffle()
             # self.val_loader.dataset.meta_df = self.val_loader.dataset.abnormal_meta_df
-
             tqdm_able = (self.cfgs["run"] != "train") and self.do_logging
             for data in tqdm(self.val_loader, disable=(not tqdm_able)):
 
@@ -145,23 +156,22 @@ class Validator(object):
                     bi_det_preds = bi_det_preds[bi_det_preds[:, -1] != -1]
 
                     # TODO: use aux_classifier for cls_pred
-                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi][0]).item()
-
                     if len(bi_det_preds) == 0:  # No pred bbox
                         # bi_det_preds = np.ones((1, 6)) * -1
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
                         # bi_cls_pred = 0
                     else:
+                        bi_det_preds[:, -1] = 1 / (1 + np.exp(-1 * bi_det_preds[:, -1]))
                         bi_dim0 = self.meta_dict[bi_fp]["dim0"]
                         bi_dim1 = self.meta_dict[bi_fp]["dim1"]
-
-                        bi_det_preds[:, -1] = 1 / (1 + np.exp(-1 * bi_det_preds[:, -1]))
-                        # bi_cls_pred = np.max(bi_det_preds[:, -1])
-
                         bi_det_preds[:, [0, 2]] *= bi_dim0 / self.ims
                         bi_det_preds[:, [1, 3]] *= bi_dim1 / self.ims
+                        bi_det_preds = np.round(bi_det_preds).astype(int)
 
-                        bi_det_preds = bi_det_preds.astype(int)
+                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi][0]).item()
+                    if self.cfgs["model"]["val"]["use_classifier"]:
+                        if bi_cls_pred < self.cfgs["model"]["val"]["use_classifier"]:
+                            bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 

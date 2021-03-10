@@ -45,6 +45,8 @@ val:
   iou_th: 0.4
   best: det_f1  
   ignore_normal: False
+  use_classifier: True
+  cls_th: 0.5
 test: 
   prob_ths: [0.5]
   iou_th: 0.4
