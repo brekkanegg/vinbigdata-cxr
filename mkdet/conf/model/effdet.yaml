@@ -17,8 +17,8 @@ loss:
   pos_weight: 1
   cls_weight: 0.1
   dist_weight: 10
-  pos_th: 0.5
-  neg_th: 0.05
+  pos_th: 0.4
+  neg_th: 0.2
 inputs: 
   image_size: 1024
   min_size: 24
