@@ -43,7 +43,7 @@ val:
   det_th: 0.1
   nms_th: 0.4
   iou_th: 0.4
-  best: det_f1  
+  best: coco
   ignore_normal: False
   use_classifier: True
   cls_th: 0.5

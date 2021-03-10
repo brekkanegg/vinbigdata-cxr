@@ -103,15 +103,6 @@ class Trainer(object):
             sampler=train_sampler,
         )
 
-        # if self.do_logging:
-        #     self.txt_logger.write("\nDataset: ")
-        #     self.txt_logger.write(
-        #         "\nTRAIN Abnormal/Normal: {}/{}".format(
-        #             len(train_dataset.abnormal_meta_df),
-        #             len(train_dataset.normal_meta_df),
-        #         )
-        #     )
-
         ####### Opts
         self.optimizer = opts.get_optimizer(self.cfgs, self.model.parameters())
         self.scheduler = opts.get_scheduler(self.cfgs, self.optimizer)
@@ -119,27 +110,12 @@ class Trainer(object):
 
         ####### Validator
         self.validator = Validator(self.cfgs, self.device)
-        # if self.do_logging:
-        #     self.txt_logger.write(
-        #         "\nVAL   Abnormal/Normal: {}/{}".format(
-        #             len(self.validator.val_loader.dataset.abnormal_meta_df),
-        #             len(self.validator.val_loader.dataset.normal_meta_df),
-        #         )
-        #     )
-
-        # if self.cfgs["model"]["val"]["ignore_normal"]:
-        #     self.txt_logger.write("\nVAL   Ignore Normal")
-        #     self.validator.val_loader.dataset.meta_df = (
-        #         self.validator.val_loader.dataset.abnormal_meta_df
-        #     )
 
     def do_train(self):
 
         ####### Setup Train
         self.epoch, self.iter, self.resume_epoch = 0, 0, 0
-        self.tot_val_record = {
-            "best": {"det_recl": -1, "det_prec": -1, "det_f1": -1, "loss": np.inf}
-        }
+        self.tot_val_record = {"best": {"loss": np.inf, "coco": -1}}
 
         if self.cfgs["model"]["train"]["resume_train"]:
             with open(
@@ -161,20 +137,11 @@ class Trainer(object):
 
         if self.do_logging:
             self.txt_logger.write("\n\nStart Training! \n\n")
-            header_columns = ["epoch", "iter", "time", "train_loss", "val_loss"]
-            header_columns += ["det_recl", "det_prec", "det_fppi", "det_f1"]
-            header_columns += ["cls_auc", "cls_sens", "cls_spec"]
-            header_columns += ["best_epoch"]
-            self.txt_logger.log_header(header_columns)
 
         ####### Train
         self.start_time = time.time()
         self.endurance = 0
         for epoch in range(self.resume_epoch, self.cfgs["model"]["train"]["max_epoch"]):
-            # self.train_loader.dataset.shuffle()
-            # self.train_loader.dataset.meta_df = (
-            #     self.train_loader.dataset.abnormal_meta_df
-            # )
 
             self.one_epoch_steps = len(self.train_loader)
             self.display_step = (
@@ -201,19 +168,13 @@ class Trainer(object):
         self.optimizer.zero_grad()
         self.model.train()
 
-        t0 = time.time()
-
         for i, data in enumerate(self.train_loader):
-            t1 = time.time()
+
             img = data["img"].permute(0, 3, 1, 2).to(self.device)
-            logit = self.model(img)
+            logits = self.model(img)
 
-            t2 = time.time()
-
-            # FIXME: GPU Util이 안 나온다
-            loss = opts.calc_loss(self.cfgs, self.device, data, logit)
-
-            t3 = time.time()
+            dloss, closs = opts.calc_loss(self.cfgs, self.device, data, logits)
+            loss = dloss + self.cfgs["model"]["loss"]["cls_weight"] * closs
 
             self.grad_scaler.scale(loss).backward()
             self.grad_scaler.step(self.optimizer)
@@ -221,26 +182,23 @@ class Trainer(object):
 
             self.optimizer.zero_grad()
 
-            t4 = time.time()
-
-            # NOTE: Try to avoid excessive CPU-GPU synchronization (.item() calls, or printing values from CUDA tensors).
-
             if self.do_logging:
                 loss = loss.detach().item()
+                dloss = dloss.detach().item()
+                closs = closs.detach().item()
+
                 take_time = tools.convert_time(time.time() - self.start_time)
-                train_logs = [loss, "-"]
-                self.txt_logger.log_result(
-                    [self.epoch, "{}/{}".format(i, self.one_epoch_steps), take_time]
-                    + train_logs
-                )
-                self.tb_writer.write_scalars(
-                    {"loss": {"train loss": loss}},
-                    self.iter,
+
+                self.txt_logger.write(
+                    f"\repoch-step: {self.epoch}-{i}/{self.one_epoch_steps}, time: {take_time}, dloss: {dloss:.4f}, closs: {closs:.4f}",
+                    False,
                 )
 
+                self.tb_writer.write_scalars({"loss": {"t loss": loss}}, self.iter)
+                self.tb_writer.write_scalars({"dloss": {"t dloss": dloss}}, self.iter)
+                self.tb_writer.write_scalars({"closs": {"t closs": closs}}, self.iter)
+
                 if self.iter % self.display_step == 0:
-                    # Visualize
-                    # Find abnormal
                     for viz_bi in range(len(data["fp"])):
                         if data["bbox"][viz_bi, 0, -1] != -1:
                             break
@@ -254,12 +212,7 @@ class Trainer(object):
                             .numpy()
                         )
 
-                        if len(det_preds_viz) != 0:
-                            # sigmoid
-                            det_preds_viz[:, -1] = 1 / (
-                                1 + np.exp(-1 * det_preds_viz[:, -1])
-                            )
-                        else:
+                        if len(det_preds_viz) == 0:
                             det_preds_viz = np.ones((1, 6)) * -1
 
                         det_anns_viz = data["bbox"][viz_bi].numpy()
@@ -285,15 +238,6 @@ class Trainer(object):
                 if not self.scheduler is None:
                     self.scheduler.step(self.epoch - wep + i / self.one_epoch_steps)
 
-            t5 = time.time()
-            if self.cfgs["do_profiling"]:
-                print("\ndata", t1 - t0)
-                print("forward", t2 - t1)
-                print("calc loss", t3 - t2)
-                print("backward", t4 - t3)
-                print("logging", t5 - t4)
-            t0 = t5
-
         if self.epoch > self.cfgs["model"]["val"]["ignore_epoch"]:
 
             # Do Validation
@@ -307,7 +251,7 @@ class Trainer(object):
             if select_metric == "loss":
                 if val_best < self.tot_val_record["best"][select_metric]:
                     val_improved = True
-            elif select_metric == "det_f1":
+            elif select_metric == "coco":
                 if val_best > self.tot_val_record["best"][select_metric]:
                     val_improved = True
 
@@ -332,17 +276,29 @@ class Trainer(object):
             if self.do_logging:
                 take_time = utils.tools.convert_time(time.time() - self.start_time)
                 vloss = val_record["loss"]
+                vdloss = val_record["dloss"]
+                vcloss = val_record["closs"]
                 vbest_epoch = self.tot_val_record["best"]["epoch"]
-                metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
-                metric_keys += ["cls_auc", "cls_sens", "cls_spec"]
-                val_logs = [vloss] + [val_record[k] for k in metric_keys]
-                self.txt_logger.log_result(
-                    [self.epoch + 1, self.iter, take_time, loss]
-                    + val_logs
-                    + [vbest_epoch],
-                    txt_write=True,
+                # metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
+                # metric_keys += ["cls_auc", "cls_sens", "cls_spec"]
+                # val_logs = [vloss] + [val_record[k] for k in metric_keys]
+
+                self.txt_logger.write(
+                    f"\repoch: {self.epoch+1}, time: {take_time}, tdloss: {dloss:.4f}, tcloss: {closs:.4f}, vdloss: {vdloss:.4f}, vcloss: {vcloss:.4f}"
                 )
+                self.txt_logger.write("\n")
+                for k in ["det_recl", "det_prec", "det_fppi", "det_f1"]:
+                    self.txt_logger.write(f"{k}: ")
+                    for v in val_record[k][0, :]:
+                        self.txt_logger.write(f"{v:.2f} ")
+                    self.txt_logger.write("\n")
+                for k in ["cls_auc", "cls_sens", "cls_spec", "coco"]:
+                    self.txt_logger.write(f"{k}: {val_record[k]:.2f}")
+                    self.txt_logger.write("\n")
+                self.txt_logger.write(f"best epoch: {vbest_epoch}")
                 self.txt_logger.write("\n", txt_write=True)
+                self.txt_logger.write("\n", txt_write=False)
+
                 self.tb_writer.write_images(
                     val_viz["fp"],
                     val_viz["img"],
@@ -352,6 +308,19 @@ class Trainer(object):
                     "val",
                 )
 
+                self.tb_writer.add_scalar("coco", val_record["coco"], self.epoch)
+                metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
+                self.tb_writer.write_scalars(
+                    {
+                        "metrics": {
+                            "{}".format(key): val_record[key][0, :-1].mean()
+                            for key in metric_keys
+                        }
+                    },
+                    self.iter,
+                )
+
+                metric_keys = ["cls_auc", "cls_sens", "cls_spec"]
                 self.tb_writer.write_scalars(
                     {
                         "metrics": {
@@ -360,7 +329,10 @@ class Trainer(object):
                     },
                     self.iter,
                 )
-                self.tb_writer.write_scalars({"loss": {"val loss": vloss}}, self.iter)
+
+                self.tb_writer.write_scalars({"loss": {"v loss": vloss}}, self.iter)
+                self.tb_writer.write_scalars({"dloss": {"v dloss": vdloss}}, self.iter)
+                self.tb_writer.write_scalars({"closs": {"v closs": vcloss}}, self.iter)
 
                 with open(
                     os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "wb"

@@ -113,6 +113,8 @@ class Validator(object):
         det_pred_nums_tot = np.zeros((1, 15))
         nums_tot = 0
         losses_tot = 0
+        dlosses_tot = 0
+        closses_tot = 0
 
         # Classification metrics
         cls_pred_tot = []
@@ -121,17 +123,14 @@ class Validator(object):
         self.model.eval()  # batchnorm uses moving mean/variance instead of mini-batch mean/variance
         with torch.no_grad():
 
-            # NOTE: For various visualization, no difference in dataset
-            # if not self.cfgs["model"]["val"]["ignore_normal"]:
-            # self.val_loader.dataset.shuffle()
-            # self.val_loader.dataset.meta_df = self.val_loader.dataset.abnormal_meta_df
             tqdm_able = (self.cfgs["run"] != "train") and self.do_logging
             for data in tqdm(self.val_loader, disable=(not tqdm_able)):
 
                 img = data["img"].permute(0, 3, 1, 2).to(self.device)
 
                 logits = self.model(img, mode="val")
-                loss = opts.calc_loss(self.cfgs, self.device, data, logits)
+                dloss, closs = opts.calc_loss(self.cfgs, self.device, data, logits)
+                loss = dloss + self.cfgs["model"]["loss"]["cls_weight"] * closs
 
                 if len(self.cfgs["gpu"]) > 1:
                     loss = torch.mean(gather_helper(loss))
@@ -142,7 +141,11 @@ class Validator(object):
                     logits["aux_cls"] = gather_helper(logits["aux_cls"])
 
                 loss = loss.detach().item()
+                dloss = dloss.detach().item()
+                closs = closs.detach().item()
                 losses_tot += loss * len(data["fp"])
+                dlosses_tot += dloss * len(data["fp"])
+                closses_tot += closs * len(data["fp"])
                 nums_tot += len(data["fp"])
 
                 det_anns = data["bbox"].numpy()
@@ -159,9 +162,8 @@ class Validator(object):
                     if len(bi_det_preds) == 0:  # No pred bbox
                         # bi_det_preds = np.ones((1, 6)) * -1
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
-                        # bi_cls_pred = 0
+
                     else:
-                        bi_det_preds[:, -1] = 1 / (1 + np.exp(-1 * bi_det_preds[:, -1]))
                         bi_dim0 = self.meta_dict[bi_fp]["dim0"]
                         bi_dim1 = self.meta_dict[bi_fp]["dim1"]
                         bi_det_preds[:, [0, 2]] *= bi_dim0 / self.ims
@@ -176,7 +178,6 @@ class Validator(object):
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 
                     # GT
-
                     bi_det_ann = det_anns[bi]
                     bi_det_ann = bi_det_ann[bi_det_ann[:, -1] != -1]
                     (
@@ -201,10 +202,7 @@ class Validator(object):
                     break
 
             det_preds_viz = logits["preds"][viz_bi].detach().cpu().numpy()
-            if len(det_preds_viz) != 0:  # No pred bbox
-                # sigmoid
-                det_preds_viz[:, -1] = 1 / (1 + np.exp(-1 * det_preds_viz[:, -1]))
-            else:
+            if len(det_preds_viz) == 0:  # No pred bbox
                 det_preds_viz = np.ones((1, 6)) * -1
 
             det_anns_viz = data["bbox"][viz_bi].detach().cpu().numpy()
@@ -237,12 +235,14 @@ class Validator(object):
             cls_spec = 0
 
         # except class 14 - normal
-        det_pc = det_pc[0, :-1].mean()
-        det_rc = det_rc[0, :-1].mean()
-        det_fppi = det_fppi[0, :-1].mean()
+        # det_pc = det_pc[0, :-1].mean()
+        # det_rc = det_rc[0, :-1].mean()
+        # det_fppi = det_fppi[0, :-1].mean()
 
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
+            "dloss": (dlosses_tot / (nums_tot + 1e-5)),
+            "closs": (closses_tot / (nums_tot + 1e-5)),
             "det_prec": det_pc,
             "det_recl": det_rc,
             "det_fppi": det_fppi,
@@ -256,8 +256,8 @@ class Validator(object):
         return val_record, val_viz
 
 
-def sigmoid_func(x):
-    return 1 / (1 + np.exp(-x))
+# def sigmoid_func(x):
+#     return 1 / (1 + np.exp(-x))
 
 
 def gather_helper(target):

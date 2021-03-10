@@ -1,5 +1,5 @@
 # https://www.kaggle.com/pestipeti/competition-metric-map-0-4/comments
-
+import os, sys
 import pandas as pd
 import numpy as np
 from pycocotools.coco import COCO
@@ -8,6 +8,16 @@ from pycocotools.cocoeval import COCOeval
 """
 modify to dictionary format
 """
+
+
+class HiddenPrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, "w")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
 
 
 class VinBigDataEval:
@@ -52,7 +62,7 @@ class VinBigDataEval:
         }
 
     def __gen_categories(self):
-        print("Generating category data...")
+        # print("Generating category data...")
 
         cats = [
             "Aortic enlargement",
@@ -93,7 +103,7 @@ class VinBigDataEval:
         return results
 
     def __gen_images(self, image_ids):
-        print("Generating image data...")
+        # print("Generating image data...")
         results = []
 
         for idx, image_id in enumerate(image_ids):
@@ -108,7 +118,7 @@ class VinBigDataEval:
         return results
 
     def __gen_annotations(self, dct, image_ids):
-        print("Generating annotation data...")
+        # print("Generating annotation data...")
         k = 0
         results = []
 
@@ -133,7 +143,6 @@ class VinBigDataEval:
                 k += 1
 
         # for idx, image_id in enumerate(image_ids):
-
         #     # Add image annotations
         #     for i, row in df[df["image_id"] == image_id].iterrows():
         #         results.append(
@@ -163,7 +172,7 @@ class VinBigDataEval:
     #     return data.reshape(-1, 6)
 
     def __gen_predictions(self, dct, image_ids):
-        print("Generating prediction data...")
+        # print("Generating prediction data...")
         k = 0
         results = []
 
@@ -231,28 +240,30 @@ class VinBigDataEval:
                 pred_dict, self.image_ids
             )
 
-        coco_ds = COCO()
-        coco_ds.dataset = self.annotations
-        coco_ds.createIndex()
+        with HiddenPrints():
 
-        coco_dt = COCO()
-        coco_dt.dataset = self.predictions
-        coco_dt.createIndex()
+            coco_ds = COCO()
+            coco_ds.dataset = self.annotations
+            coco_ds.createIndex()
 
-        imgIds = sorted(coco_ds.getImgIds())
+            coco_dt = COCO()
+            coco_dt.dataset = self.predictions
+            coco_dt.createIndex()
 
-        if n_imgs > 0:
-            imgIds = np.random.choice(imgIds, n_imgs)
+            imgIds = sorted(coco_ds.getImgIds())
 
-        cocoEval = COCOeval(coco_ds, coco_dt, "bbox")
-        cocoEval.params.imgIds = imgIds
-        cocoEval.params.useCats = True
-        cocoEval.params.iouType = "bbox"
-        cocoEval.params.iouThrs = np.array([0.4])
+            if n_imgs > 0:
+                imgIds = np.random.choice(imgIds, n_imgs)
 
-        cocoEval.evaluate()
-        cocoEval.accumulate()
-        cocoEval.summarize()
+            cocoEval = COCOeval(coco_ds, coco_dt, "bbox")
+            cocoEval.params.imgIds = imgIds
+            cocoEval.params.useCats = True
+            cocoEval.params.iouType = "bbox"
+            cocoEval.params.iouThrs = np.array([0.4])
+
+            cocoEval.evaluate()
+            cocoEval.accumulate()
+            cocoEval.summarize()
 
         return cocoEval
 

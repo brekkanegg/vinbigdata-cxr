@@ -56,13 +56,12 @@ def calc_loss(cfgs, device, data, logits):
     cfgs_loss = cfgs["model"]["loss"]
 
     criterion = FocalLoss(cfgs)
-    loss = criterion(logits, data["bbox"].to(device))
+    loss_det = criterion(logits, data["bbox"].to(device))
 
     if cfgs_loss["cls_weight"] > 0:
         aux_cls_criterion = nn.BCEWithLogitsLoss()
         data_cls = data["bbox"][:, :, -1][:, 0].unsqueeze(-1)
         data_cls = (data_cls > -1).float()
-        aux_cls_loss = aux_cls_criterion(logits["aux_cls"], data_cls.to(device))
-        loss += cfgs_loss["cls_weight"] * aux_cls_loss
+        loss_cls = aux_cls_criterion(logits["aux_cls"], data_cls.to(device))
 
-    return loss
+        return loss_det, loss_cls
