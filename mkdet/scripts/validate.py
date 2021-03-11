@@ -172,7 +172,7 @@ class Validator(object):
 
                     bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi][0]).item()
                     if self.cfgs["model"]["val"]["use_classifier"]:
-                        if bi_cls_pred < self.cfgs["model"]["val"]["use_classifier"]:
+                        if bi_cls_pred < self.cfgs["model"]["val"]["cls_th"]:
                             bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
