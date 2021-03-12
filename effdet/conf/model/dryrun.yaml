@@ -1,0 +1,43 @@
+# @package _group_
+meta: Dryrun
+model: 
+  name: EfficientSeg
+  backbone: efficientnet-b0
+  cls: True
+opts:
+  optimizer: adam
+  learning_rate: 1e-4
+  beta1: 0.9
+  beta2: 0.999
+  scheduler: None
+  weight_decay: 5e-6
+loss:
+  pos_weight: 1
+  cls_weight: 0.1
+  dist_weight: 10
+inputs: 
+  image_size: 256
+  label: pneumoperitoneum
+  num_classes: 1
+  posneg_ratio: 1
+  augment: train_multi_augment12
+  use_normal: False
+  soft_label: 0.9
+train:
+  load_ckpt: Null
+  resume_train: False
+  max_epoch: 10
+  samples_per_epoch: 200
+  endurance: 20
+  display_interval: 4
+val:
+  val_epoch: 5
+  val_interval: 1
+  prob_ths: [0.5]
+  iou_th: 0.15
+  best: seg_f1  
+test: 
+  prob_ths: [0.5]
+  iou_th: 0.15
+  save_png: True
+  save_only_wrong: True

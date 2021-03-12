@@ -73,21 +73,26 @@ class AuxClassificationModel(nn.Module):
             num_channels, num_channels, kernel_size=1, stride=1, padding=0
         )
         self.act1 = nn.ReLU()
+
         self.conv2 = nn.Conv2d(
             num_channels, num_channels, kernel_size=1, stride=1, padding=0
         )
         self.act2 = nn.ReLU()
+
+        self.conv3 = nn.Conv2d(
+            num_channels, num_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.act3 = nn.ReLU()
+
         self.logit = nn.Conv2d(num_channels, 1, kernel_size=1, stride=1, padding=0)
 
-        self.init_weights()
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+    # def init_weights(self):
+    #     for m in self.modules():
+    #         if isinstance(m, nn.Conv2d):
+    #             nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+    #         elif isinstance(m, nn.BatchNorm2d):
+    #             nn.init.constant_(m.weight, 1)
+    #             nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         x = self.avg_pool(x)
@@ -95,45 +100,48 @@ class AuxClassificationModel(nn.Module):
         x = self.act1(x)
         x = self.conv2(x)
         x = self.act2(x)
+        x = self.conv3(x)
+        x = self.act3(x)
+
         x = self.logit(x)
 
-        return x
+        return x.contiguous().view(x.shape[0], 1)
 
 
-class FalsePositiveReductionModel(nn.Module):
-    def __init__(self, in_channels=3, num_channels=256):
-        super(FalsePositiveReductionModel, self).__init__()
-        self.conv1 = nn.Conv2d(
-            in_channels, num_channels, kernel_size=3, stride=1, padding=1
-        )
-        self.conv2 = nn.Conv2d(
-            num_channels, num_channels, kernel_size=3, stride=1, padding=1
-        )
-        self.conv3 = nn.Conv2d(
-            num_channels, num_channels, kernel_size=3, stride=1, padding=1
-        )
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.logit = nn.Conv2d(num_channels, 2, kernel_size=1, stride=1, padding=0)
+# class FalsePositiveReductionModel(nn.Module):
+#     def __init__(self, in_channels=3, num_channels=256):
+#         super(FalsePositiveReductionModel, self).__init__()
+#         self.conv1 = nn.Conv2d(
+#             in_channels, num_channels, kernel_size=3, stride=1, padding=1
+#         )
+#         self.conv2 = nn.Conv2d(
+#             num_channels, num_channels, kernel_size=3, stride=1, padding=1
+#         )
+#         self.conv3 = nn.Conv2d(
+#             num_channels, num_channels, kernel_size=3, stride=1, padding=1
+#         )
+#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
+#         self.logit = nn.Conv2d(num_channels, 2, kernel_size=1, stride=1, padding=0)
 
-        self.init_weights()
+#         self.init_weights()
 
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+#     def init_weights(self):
+#         for m in self.modules():
+#             if isinstance(m, nn.Conv2d):
+#                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+#             elif isinstance(m, nn.BatchNorm2d):
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x):
-        with torch.autograd.detect_anomaly():
-            x = self.conv1(x)
-            x = self.conv2(x)
-            x = self.conv3(x)
-            x = self.avg_pool(x)
-            x = self.logit(x)
+#     def forward(self, x):
+#         with torch.autograd.detect_anomaly():
+#             x = self.conv1(x)
+#             x = self.conv2(x)
+#             x = self.conv3(x)
+#             x = self.avg_pool(x)
+#             x = self.logit(x)
 
-        return x
+#         return x
 
 
 class RegressionModel(nn.Module):

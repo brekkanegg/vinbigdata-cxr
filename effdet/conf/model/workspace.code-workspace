@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../../../../home/minki"
+		},
+		{
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"python.pythonPath": "/opt/conda/bin/python"
+	}
+}

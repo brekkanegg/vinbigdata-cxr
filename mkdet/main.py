@@ -57,15 +57,7 @@ def main(cfgs: DictConfig):
     torch.random.manual_seed(52)
 
     # Settings
-    torch.cuda.set_device(cfgs["local_rank"])
-    if len(cfgs["gpu"]) > 1:
-        world_size = len(cfgs["gpu"])
-        dist.init_process_group(
-            "nccl",
-            init_method="env://",
-            world_size=world_size,
-            rank=cfgs["local_rank"],
-        )
+    torch.cuda.set_device(0)
 
     if cfgs["run"] == "train":
         from scripts.train import Trainer

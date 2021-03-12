@@ -62,6 +62,7 @@ def calc_loss(cfgs, device, data, logits):
         aux_cls_criterion = nn.BCEWithLogitsLoss()
         data_cls = data["bbox"][:, :, -1][:, 0].unsqueeze(-1)
         data_cls = (data_cls > -1).float()
+        data_cls = torch.clamp(data_cls, 0.1, 0.9)
         loss_cls = aux_cls_criterion(logits["aux_cls"], data_cls.to(device))
 
         return loss_det, loss_cls

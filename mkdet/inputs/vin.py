@@ -60,7 +60,7 @@ class VIN(Dataset):
         ys = []
         for v in self.meta_dict.values():
             temp_lbl = np.array(v["bbox"])[:, 2]
-            temp = np.zeros((15))
+            temp = np.zeros((self.cfgs["model"]["inputs"]["num_classes"]))
             for i in temp_lbl:
                 temp[int(i)] = 1
             ys.append(temp)
@@ -179,7 +179,9 @@ class VIN(Dataset):
             # FIXME:
             # NOTE: Simple NMS for multi-labeler case
             if len(bboxes_coord) >= 2:  # ("cst" in mask_path[0]) and
-                bboxes_coord, bboxes_cat = simple_nms(bboxes_coord, bboxes_cat)
+                bboxes_coord, bboxes_cat = simple_nms(
+                    bboxes_coord, bboxes_cat, iou_th=0.25
+                )
 
             t3 = time.time()
 

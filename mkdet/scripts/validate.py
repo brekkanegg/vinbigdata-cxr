@@ -30,15 +30,8 @@ class Validator(object):
         ####### DATA
         val_transforms = None  # FIXME:
         val_dataset = inputs.get_dataset(self.cfgs, mode="val")
-        if len(cfgs["gpu"]) > 1:
-            val_sampler = DistributedSampler(
-                val_dataset,
-                num_replicas=len(cfgs["gpu"]),
-                rank=self.cfgs["local_rank"],
-            )
-        else:
-            val_sampler = None
 
+        val_sampler = None
         self.val_loader = DataLoader(
             dataset=val_dataset,
             batch_size=cfgs["batch_size"] * 4,
@@ -51,11 +44,6 @@ class Validator(object):
 
         self.meta_dict = self.val_loader.dataset.meta_dict
         self.ims = self.cfgs["model"]["inputs"]["image_size"]
-
-        self.do_logging = True
-        if len(self.cfgs["gpu"]) > 1:
-            if dist.get_rank() != 0:
-                self.do_logging = False
 
         # Vin Eval
         self.gt_dict = self.get_gt_dict()
@@ -80,6 +68,7 @@ class Validator(object):
                 bl = int(bb[2])
                 if bl == 14:
                     continue
+
                 if (bx0 >= bx1) or (by0 >= by1):
                     continue
                 else:
@@ -88,7 +77,9 @@ class Validator(object):
 
             # FIXME: simple_nms
             if len(bboxes_coord) >= 2:
-                bboxes_coord, bboxes_cat = simple_nms(bboxes_coord, bboxes_cat)
+                bboxes_coord, bboxes_cat = simple_nms(
+                    bboxes_coord, bboxes_cat, iou_th=0.25
+                )
 
             bboxes = [list(b) + [c] for (b, c) in zip(bboxes_coord, bboxes_cat)]
             bboxes = np.array(bboxes).astype(int)
@@ -107,10 +98,12 @@ class Validator(object):
         self.model = model.to(self.device)
 
         ####### Init val result
-        det_gt_nums_tot = np.zeros((15))
-        det_tp_nums_tot = np.zeros((1, 15))
-        det_fp_nums_tot = np.zeros((1, 15))
-        det_pred_nums_tot = np.zeros((1, 15))
+        num_classes = self.cfgs["model"]["inputs"]["num_classes"]
+
+        det_gt_nums_tot = np.zeros(num_classes)
+        det_tp_nums_tot = np.zeros(num_classes)
+        det_fp_nums_tot = np.zeros(num_classes)
+        det_pred_nums_tot = np.zeros(num_classes)
         nums_tot = 0
         losses_tot = 0
         dlosses_tot = 0
@@ -123,7 +116,7 @@ class Validator(object):
         self.model.eval()  # batchnorm uses moving mean/variance instead of mini-batch mean/variance
         with torch.no_grad():
 
-            tqdm_able = (self.cfgs["run"] != "train") and self.do_logging
+            tqdm_able = self.cfgs["run"] != "train"
             for data in tqdm(self.val_loader, disable=(not tqdm_able)):
 
                 img = data["img"].permute(0, 3, 1, 2).to(self.device)
@@ -131,14 +124,6 @@ class Validator(object):
                 logits = self.model(img, mode="val")
                 dloss, closs = opts.calc_loss(self.cfgs, self.device, data, logits)
                 loss = dloss + self.cfgs["model"]["loss"]["cls_weight"] * closs
-
-                if len(self.cfgs["gpu"]) > 1:
-                    loss = torch.mean(gather_helper(loss))
-                    data["fp"] = gather_helper(data["fp"])
-                    data["bbox"] = gather_helper(data["bbox"])
-                    # FIXME:
-                    logits["preds"] = gather_helper(logits["preds"])
-                    logits["aux_cls"] = gather_helper(logits["aux_cls"])
 
                 loss = loss.detach().item()
                 dloss = dloss.detach().item()
@@ -164,10 +149,11 @@ class Validator(object):
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     else:
-                        bi_dim0 = self.meta_dict[bi_fp]["dim0"]
-                        bi_dim1 = self.meta_dict[bi_fp]["dim1"]
-                        bi_det_preds[:, [0, 2]] *= bi_dim0 / self.ims
-                        bi_det_preds[:, [1, 3]] *= bi_dim1 / self.ims
+                        # FIXME:
+                        # bi_dim0 = self.meta_dict[bi_fp]["dim0"]
+                        # bi_dim1 = self.meta_dict[bi_fp]["dim1"]
+                        # bi_det_preds[:, [0, 2]] *= bi_dim0 / self.ims
+                        # bi_det_preds[:, [1, 3]] *= bi_dim1 / self.ims
                         bi_det_preds = np.round(bi_det_preds).astype(int)
 
                     bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi][0]).item()
@@ -175,11 +161,22 @@ class Validator(object):
                         if bi_cls_pred < self.cfgs["model"]["val"]["cls_th"]:
                             bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
+                    cls_pred_tot.append(bi_cls_pred)
+
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 
                     # GT
                     bi_det_ann = det_anns[bi]
                     bi_det_ann = bi_det_ann[bi_det_ann[:, -1] != -1]
+
+                    cls_gt_tot.append(int(len(bi_det_ann) > 0))
+
+                    if len(bi_det_ann) == 0:  # No pred bbox
+                        # bi_det_preds = np.ones((1, 6)) * -1
+                        # This is dummy bbox
+                        bi_det_ann = np.array([[0, 0, 1, 1, 14]])
+
+                    # evaluation
                     (
                         bi_det_gt_num,
                         bi_det_pred_num,
@@ -193,11 +190,9 @@ class Validator(object):
                     det_pred_nums_tot += bi_det_pred_num
                     det_fp_nums_tot += bi_det_fp_num
 
-                    cls_pred_tot.append(bi_cls_pred)
-                    cls_gt_tot.append(int(len(bi_det_ann) > 0))
-
             # for Visualization - abnormal
-            for viz_bi in range(len(data["fp"])):
+            vizlist = np.random.permutation(list(range(len(data["fp"]))))
+            for viz_bi in vizlist:
                 if data["bbox"][viz_bi, 0, -1] != -1:
                     break
 
@@ -254,18 +249,6 @@ class Validator(object):
         }
 
         return val_record, val_viz
-
-
-# def sigmoid_func(x):
-#     return 1 / (1 + np.exp(-x))
-
-
-def gather_helper(target):
-    target_gather = [torch.zeros_like(target) for _ in range(dist.get_world_size())]
-    dist.all_gather(target_gather, target, async_op=False)
-    target = torch.cat(target_gather, 0)
-
-    return target
 
 
 def pred2string(pred):

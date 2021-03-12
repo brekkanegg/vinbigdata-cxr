@@ -7,7 +7,7 @@ model:
   feat_start_layer: 1
 opts:
   optimizer: adamw #adamw
-  learning_rate: 1e-4
+  learning_rate: 1e-3
   beta1: 0.9
   beta2: 0.999
   scheduler: cosineWR #cosineWR #Null
@@ -16,13 +16,12 @@ opts:
 loss:
   pos_weight: 1
   cls_weight: 0.1
-  dist_weight: 10
   pos_th: 0.4
   neg_th: 0.2
 inputs: 
   image_size: 1024
   min_size: 24
-  label: ribfracture
+  label: vin
   num_classes: 15
   posneg_ratio: 1
   augment: train_multi_augment12

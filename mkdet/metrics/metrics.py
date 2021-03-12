@@ -63,40 +63,40 @@ def evaluate(cfgs, pred_bbox, gt_bbox):
 
     if cfgs["run"] == "train":
         iou_th = 0.4
-        prob_ths = cfgs["model"]["val"]["prob_ths"]
+        prob_th = 0.5
     elif cfgs["run"] == "test":
         iou_th = 0.4
-        prob_ths = cfgs["model"]["test"]["prob_ths"]
+        prob_th = 0.5
 
     # 초기화
-    gt_nums = np.array([len(gt_bbox[gt_bbox[:, -1] == c]) for c in range(num_classes)])
-
-    tp_nums = np.zeros((len(prob_ths), num_classes))
-    pred_nums = np.zeros((len(prob_ths), num_classes))
-    fp_nums = np.zeros((len(prob_ths), num_classes))
+    # gt_nums = np.array([len(gt_bbox[gt_bbox[:, -1] == c]) for c in range(num_classes)])
+    gt_nums = np.zeros(num_classes)
+    tp_nums = np.zeros(num_classes)
+    pred_nums = np.zeros(num_classes)
+    fp_nums = np.zeros(num_classes)
 
     # Gt-Pred Bbox Iou Matrix
     for c in range(num_classes):
         c_gt_bbox = gt_bbox[gt_bbox[:, 4] == c]
         c_pred_bbox = pred_bbox[pred_bbox[:, 4] == c]
 
-        for thi in range(len(prob_ths)):
-            thi_c_pred_bbox = c_pred_bbox[c_pred_bbox[:, -1] >= thi]
+        thi_c_pred_bbox = c_pred_bbox[c_pred_bbox[:, -1] >= prob_th]
 
-            pred_nums[thi][c] = len(thi_c_pred_bbox)
-            fp_nums[thi][c] = len(thi_c_pred_bbox)
+        gt_nums[c] = len(c_gt_bbox)
+        pred_nums[c] = len(thi_c_pred_bbox)
+        fp_nums[c] = len(thi_c_pred_bbox)
 
-            iou_matrix = np.zeros((len(c_gt_bbox), len(thi_c_pred_bbox)))
+        iou_matrix = np.zeros((len(c_gt_bbox), len(thi_c_pred_bbox)))
 
-            # FIXME: class
-            for gi, gr in enumerate(c_gt_bbox):
-                for pi, pr in enumerate(thi_c_pred_bbox):
-                    # BBox-IoU based
-                    iou_matrix[gi, pi] = calc_iou(gr, pr)
-                    # Region-IoU based
-                    # iou_matrix[gi, pi] = calc_iou_region(gr, pr)
+        # FIXME: class
+        for gi, gr in enumerate(c_gt_bbox):
+            for pi, pr in enumerate(thi_c_pred_bbox):
+                # BBox-IoU based
+                iou_matrix[gi, pi] = calc_iou(gr, pr)
+                # Region-IoU based
+                # iou_matrix[gi, pi] = calc_iou_region(gr, pr)
 
-            tp_nums[thi][c] = np.sum(np.any((iou_matrix >= iou_th), axis=1))
-            fp_nums[thi][c] -= np.sum(np.any((iou_matrix > iou_th), axis=0))
+        tp_nums[c] = np.sum(np.any((iou_matrix >= iou_th), axis=1))
+        fp_nums[c] -= np.sum(np.any((iou_matrix > iou_th), axis=0))
 
     return gt_nums, pred_nums, tp_nums, fp_nums

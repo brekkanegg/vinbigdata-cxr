@@ -69,11 +69,6 @@ class EfficientDet(nn.Module):
             num_channels=EfficientNet_CFG[feature_net][0],
             num_layers=EfficientNet_CFG[feature_net][1],
         )
-        self.bbox_head = RetinaHead(
-            cfgs=self.cfgs,
-            in_channels=W_bifpn,
-            stacked_convs=L_head,
-        )
 
         pyramid_levels = [3, 4, 5, 6, 7]
         if self.f_start == 0:
@@ -83,10 +78,18 @@ class EfficientDet(nn.Module):
         self.regressBoxes = BBoxTransform()
         self.clipBoxes = ClipBoxes()
         # if self.cfgs["model"]["loss"]["cls_weight"] > 0:
+
         self.aux_classifier = AuxClassificationModel(self.num_channels)
 
         self._init_weights()
         # NOTE: RetinaHead initialize 따로
+
+        self.bbox_head = RetinaHead(
+            cfgs=self.cfgs,
+            in_channels=W_bifpn,
+            stacked_convs=L_head,
+        )
+
         self.bbox_head.init_weights()
 
     def forward(self, inputs, mode="train", *kwargs):
@@ -158,7 +161,7 @@ class EfficientDet(nn.Module):
             outputs_dict["preds"] = preds
 
         if self.cfgs["model"]["loss"]["cls_weight"] > 0:
-            aux_cls = self.aux_classifier(x_feat[-1])[:, :, 0, 0]
+            aux_cls = self.aux_classifier(x_feat[-1])
             outputs_dict["aux_cls"] = aux_cls
 
         return outputs_dict
