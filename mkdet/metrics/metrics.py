@@ -79,7 +79,6 @@ def evaluate(cfgs, pred_bbox, gt_bbox):
     for c in range(num_classes):
         c_gt_bbox = gt_bbox[gt_bbox[:, 4] == c]
         c_pred_bbox = pred_bbox[pred_bbox[:, 4] == c]
-
         thi_c_pred_bbox = c_pred_bbox[c_pred_bbox[:, -1] >= prob_th]
 
         gt_nums[c] = len(c_gt_bbox)

@@ -258,7 +258,7 @@ class Trainer(object):
             self.txt_logger.write("\n")
             for k in ["det_recl", "det_prec", "det_fppi", "det_f1"]:
                 self.txt_logger.write(f"{k}: ")
-                for v in val_record[k][0, :]:
+                for v in val_record[k]:
                     self.txt_logger.write(f"{v:.2f} ")
                 self.txt_logger.write("\n")
             for k in ["cls_auc", "cls_sens", "cls_spec", "coco"]:
@@ -282,7 +282,7 @@ class Trainer(object):
             self.tb_writer.write_scalars(
                 {
                     "metrics": {
-                        "{}".format(key): val_record[key][0, :-1].mean()
+                        "{}".format(key): val_record[key][:-1].mean()
                         for key in metric_keys
                     }
                 },
