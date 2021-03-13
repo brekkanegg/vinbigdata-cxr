@@ -53,6 +53,8 @@ class Validator(object):
     def get_gt_dict(self):
         from inputs.vin import simple_nms
 
+        ims = self.cfgs["model"]["inputs"]["image_size"]
+
         temp_dict = {}
         for pid in tqdm(self.val_loader.dataset.pids):
 
@@ -60,6 +62,9 @@ class Validator(object):
             bboxes_cat = []
 
             pid_info = self.meta_dict[pid]
+            pid_dimy = pid_info["dim0"]
+            pid_dimx = pid_info["dim1"]
+
             pid_bbox = np.array(pid_info["bbox"])
             # pid_bbox order: rad_id, finding, finding_id, bbox(x_min, y_min, x_max, y_max) - xyxy가로, 세로
 
@@ -72,7 +77,13 @@ class Validator(object):
                 if (bx0 >= bx1) or (by0 >= by1):
                     continue
                 else:
-                    bboxes_coord.append([bx0, by0, bx1, by1])
+                    temp_bb = [None, None, None, None]
+                    temp_bb[0] = np.round(bx0 / pid_dimx * ims)
+                    temp_bb[1] = np.round(by0 / pid_dimy * ims)
+                    temp_bb[2] = np.round(bx1 / pid_dimx * ims)
+                    temp_bb[3] = np.round(by1 / pid_dimy * ims)
+
+                    bboxes_coord.append(temp_bb)
                     bboxes_cat.append(bl)
 
             # FIXME: simple_nms

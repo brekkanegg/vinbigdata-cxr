@@ -97,6 +97,7 @@ class VIN(Dataset):
         t0 = time.time()
 
         pid = self.pids[index]
+        ims = self.cfgs["model"]["inputs"]["image_size"]
 
         # row = self.meta_df.loc[index]
 
@@ -110,9 +111,7 @@ class VIN(Dataset):
         t1 = time.time()
 
         if img.shape[1] != self.inputs_cfgs["image_size"]:
-            img = cv2.resize(
-                img, (self.inputs_cfgs["image_size"], self.inputs_cfgs["image_size"])
-            )
+            img = cv2.resize(img, (ims, ims))
 
         img = self.windowing(img)
         img = img.astype(np.float32)
@@ -156,20 +155,12 @@ class VIN(Dataset):
                 else:
                     # Resize
                     temp_bb = [None, None, None, None]
-                    temp_bb[0] = np.round(
-                        bx0 / pid_dimx * self.inputs_cfgs["image_size"]
-                    )
-                    temp_bb[1] = np.round(
-                        by0 / pid_dimy * self.inputs_cfgs["image_size"]
-                    )
-                    temp_bb[2] = np.round(
-                        bx1 / pid_dimx * self.inputs_cfgs["image_size"]
-                    )
-                    temp_bb[3] = np.round(
-                        by1 / pid_dimy * self.inputs_cfgs["image_size"]
-                    )
+                    temp_bb[0] = np.round(bx0 / pid_dimx * ims)
+                    temp_bb[1] = np.round(by0 / pid_dimy * ims)
+                    temp_bb[2] = np.round(bx1 / pid_dimx * ims)
+                    temp_bb[3] = np.round(by1 / pid_dimy * ims)
 
-                    if (np.array(temp_bb) > self.inputs_cfgs["image_size"]).any():
+                    if (np.array(temp_bb) > ims).any():
                         a = 1
 
                     bboxes_coord.append(temp_bb)
