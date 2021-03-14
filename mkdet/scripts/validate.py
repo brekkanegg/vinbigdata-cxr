@@ -15,6 +15,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 
 import utils
+from utils import misc
 import inputs
 import opts
 from metrics.metrics import evaluate
@@ -25,6 +26,7 @@ class Validator(object):
     def __init__(self, cfgs, device=None):
 
         self.cfgs = cfgs
+        self.cfgs["save_dir"] = misc.set_save_dir(cfgs)
         self.device = device
 
         ####### DATA
@@ -56,17 +58,6 @@ class Validator(object):
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         model = model.to(self.device)
 
-        # get save_dir
-        save_dict = OrderedDict()
-        save_dict["fold"] = self.cfgs["fold"]
-        if self.cfgs["memo"] is not None:
-            save_dict["memo"] = self.cfgs["memo"]  # 1,2,3
-        specific_dir = ["{}-{}".format(key, save_dict[key]) for key in save_dict.keys()]
-        self.cfgs["save_dir"] = os.path.join(
-            self.cfgs["save_dir"],
-            "_".join(specific_dir),
-        )
-
         with open(os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "rb") as f:
             tot_val_record = pickle.load(f)
             resume_epoch = tot_val_record["best"]["epoch"]
@@ -81,7 +72,7 @@ class Validator(object):
 
     # get dictionary with nms bbox results
     def get_gt_dict(self):
-        from inputs.vin import simple_nms
+        from inputs.nms import simple_nms
 
         ims = self.cfgs["model"]["inputs"]["image_size"]
 
@@ -298,10 +289,3 @@ class Validator(object):
             print(val_record)
 
         return val_record, val_viz
-
-
-def pred2string(pred):
-    string = ""
-    for i in pred:
-        string += f" {i}"
-    return string

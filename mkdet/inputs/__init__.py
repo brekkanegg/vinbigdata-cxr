@@ -1,4 +1,5 @@
 from .vin import *
+
 from .augmentations import *
 
 
@@ -22,7 +23,10 @@ def get_augmentation(cfgs):
     return aug_fn
 
 
-def get_collater():
-    collate_fn = collater
+def get_collater(mode="train"):
+    if mode == "train":
+        collate_fn = collater
+    else:
+        collate_fn = collater_test
 
     return collate_fn

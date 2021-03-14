@@ -47,9 +47,9 @@ val:
   use_classifier: True
   cls_th: 0.5
 test: 
-  prob_ths: [0.5]
+  prob_ths: 0.5
   iou_th: 0.4
-  save_mode: 'doc'  # 'concat', 'each'
-  # save_concat: True
-  # save_each: False
-  save_only_wrong: True
+  use_classifier: True
+  cls_th: 0.5
+  submit_dir: /nfs3/minki/kaggle/vinbigdata-cxr/submit
+ 

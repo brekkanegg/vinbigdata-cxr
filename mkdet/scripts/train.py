@@ -2,7 +2,6 @@ import os, sys
 import time
 import random
 import numpy as np
-from collections import OrderedDict
 
 import torch
 import torch.nn as nn
@@ -23,6 +22,7 @@ from pathlib import Path
 from scripts.validate import Validator
 
 import utils
+from utils import misc
 import inputs
 
 import models
@@ -34,16 +34,7 @@ class Trainer(object):
 
         ####### CONFIGS
         self.cfgs = cfgs
-
-        save_dict = OrderedDict()
-        save_dict["fold"] = cfgs["fold"]
-        if cfgs["memo"] is not None:
-            save_dict["memo"] = cfgs["memo"]  # 1,2,3
-        specific_dir = ["{}-{}".format(key, save_dict[key]) for key in save_dict.keys()]
-        self.cfgs["save_dir"] = os.path.join(
-            cfgs["save_dir"],
-            "_".join(specific_dir),
-        )
+        self.cfgs["save_dir"] = misc.set_save_dir(cfgs)
         os.makedirs(self.cfgs["save_dir"], exist_ok=True)
 
         ####### Logging
@@ -206,24 +197,20 @@ class Trainer(object):
                 if not self.scheduler is None:
                     self.scheduler.step(self.epoch - wep + i / self.one_epoch_steps)
 
-        if self.epoch > self.cfgs["model"]["val"]["ignore_epoch"]:
+        # if self.epoch > self.cfgs["model"]["val"]["ignore_epoch"]:
 
-            # Do Validation
-            val_record, val_viz = self.validator.do_validate(self.model)
-            self.tot_val_record[str(self.epoch + 1)] = val_record
-            val_best = val_record[self.cfgs["model"]["val"]["best"]]
+        # Do Validation
+        val_record, val_viz = self.validator.do_validate(self.model)
+        self.tot_val_record[str(self.epoch + 1)] = val_record
+        val_best = val_record[self.cfgs["model"]["val"]["best"]]
 
-            # Save Model
-            select_metric = self.cfgs["model"]["val"]["best"]
-            val_improved = False
-            if select_metric == "loss":
-                if val_best < self.tot_val_record["best"][select_metric]:
-                    val_improved = True
-            elif select_metric == "coco":
-                if val_best > self.tot_val_record["best"][select_metric]:
-                    val_improved = True
+        # Save Model
+        select_metric = self.cfgs["model"]["val"]["best"]
+        val_improved = False
+        if val_best >= self.tot_val_record["best"][select_metric]:
+            val_improved = True
 
-            # if val_improved:
+        if val_improved:
             checkpoint = {
                 "epoch": self.epoch,
                 "model": self.model.state_dict(),
