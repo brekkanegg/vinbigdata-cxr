@@ -85,18 +85,22 @@ class Validator(object):
 
             bboxes_coord = []
             bboxes_cat = []
+            bboxes_rad = []
 
             pid_info = self.meta_dict[pid]
             pid_dimy = pid_info["dim0"]
             pid_dimx = pid_info["dim1"]
 
             pid_bbox = np.array(pid_info["bbox"])
+            pid_rad = pid_bbox[:, 0]
+
             # pid_bbox order: rad_id, finding, finding_id, bbox(x_min, y_min, x_max, y_max) - xyxy가로, 세로
 
-            for bb in pid_bbox:
+            for bi, bb in enumerate(pid_bbox):
                 bx0, by0, bx1, by1 = [float(i) for i in bb[-4:]]
-                bl = int(bb[2])
-                if bl == 14:
+                blabel = int(bb[2])
+                brad = int(pid_rad[bi])
+                if blabel == 14:
                     continue
 
                 if (bx0 >= bx1) or (by0 >= by1):
@@ -109,12 +113,13 @@ class Validator(object):
                     temp_bb[3] = np.round(by1 / pid_dimy * ims)
 
                     bboxes_coord.append(temp_bb)
-                    bboxes_cat.append(bl)
+                    bboxes_cat.append(blabel)
+                    bboxes_rad.append(brad)
 
             # FIXME: simple_nms
             if len(bboxes_coord) >= 2:
                 bboxes_coord, bboxes_cat = self.nms(
-                    bboxes_coord, bboxes_cat, iou_th=0.5
+                    bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.5
                 )
 
             bboxes = [list(b) + [c] for (b, c) in zip(bboxes_coord, bboxes_cat)]
