@@ -46,19 +46,21 @@ class Testor(object):
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         model = model.to(self.device)
 
-        with open(os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "rb") as f:
-            if self.cfgs_test["epoch"] is not None:
-                best_epoch = self.cfgs_test["best_epoch"]
-            else:
+        if self.cfgs_test["epoch"] is not None:
+            best_epoch = self.cfgs_test["best_epoch"]
+        else:
+            with open(
+                os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "rb"
+            ) as f:
                 tot_val_record = pickle.load(f)
                 best_epoch = tot_val_record["best"]["epoch"]
 
-            load_model_dir = os.path.join(
-                self.cfgs["save_dir"], "epoch_{}.pt".format(best_epoch)
-            )
-            print("Load: ", load_model_dir)
-            checkpoint = torch.load(load_model_dir)
-            model.load_state_dict(checkpoint["model"], strict=True)
+        load_model_dir = os.path.join(
+            self.cfgs["save_dir"], "epoch_{}.pt".format(best_epoch)
+        )
+        print("Load: ", load_model_dir)
+        checkpoint = torch.load(load_model_dir)
+        model.load_state_dict(checkpoint["model"], strict=True)
 
         return model
 
