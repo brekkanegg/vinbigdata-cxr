@@ -27,7 +27,7 @@ class Testor(object):
         test_sampler = None
         self.test_loader = DataLoader(
             dataset=test_dataset,
-            batch_size=cfgs["batch_size"] * 4,
+            batch_size=cfgs["batch_size"] * 8,
             num_workers=cfgs["num_workers"],
             pin_memory=True,
             drop_last=False,
@@ -51,13 +51,14 @@ class Testor(object):
             load_model_dir = os.path.join(
                 self.cfgs["save_dir"], "epoch_{}.pt".format(best_epoch)
             )
+            print("Load: ", load_model_dir)
             checkpoint = torch.load(load_model_dir)
             model.load_state_dict(checkpoint["model"], strict=True)
 
         return model
 
     def do_test(self, model=None):
-
+        print("Doing Inference.. ")
         self.model = self.load_model()
 
         submit_df = []
@@ -112,3 +113,4 @@ class Testor(object):
             f"fold{self.cfgs['fold']}{self.cfgs['memo']}_submit.csv",
         )
         submit_csv.to_csv(submit_dir)
+        print("Submission csv saved in: ", submit_dir)
