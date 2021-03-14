@@ -16,7 +16,6 @@ class Testor(object):
     def __init__(self, cfgs, device=None):
 
         self.cfgs = cfgs
-        self.cfgs["save_dir"] = misc.set_save_dir(cfgs)
         self.cfgs_test = self.cfgs["model"]["test"]
         self.device = device
 
@@ -39,6 +38,8 @@ class Testor(object):
         self.ims = self.cfgs["model"]["inputs"]["image_size"]
 
     def load_model(self):
+        self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
+
         import models
 
         model = models.get_model(self.cfgs)

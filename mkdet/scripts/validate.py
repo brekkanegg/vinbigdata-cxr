@@ -25,8 +25,7 @@ from metrics.cocoeval import VinBigDataEval
 class Validator(object):
     def __init__(self, cfgs, device=None):
 
-        self.cfgs = cfgs
-        self.cfgs["save_dir"] = misc.set_save_dir(cfgs)
+        self.cfgs = cfgs        
         self.device = device
 
         ####### DATA
@@ -52,6 +51,8 @@ class Validator(object):
         self.vineval = VinBigDataEval(self.gt_dict)
 
     def load_model(self):
+        self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
+        
         import models
 
         model = models.get_model(self.cfgs)

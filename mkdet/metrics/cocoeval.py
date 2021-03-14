@@ -199,29 +199,6 @@ class VinBigDataEval:
 
                 k += 1
 
-        # for i, row in df.iterrows():
-
-        #     image_id = row["image_id"]
-        #     preds = self.__decode_prediction_string(row["PredictionString"])
-
-        #     for j, pred in enumerate(preds):
-
-        #         results.append(
-        #             {
-        #                 "id": k,
-        #                 "image_id": int(np.where(image_ids == image_id)[0]),
-        #                 "category_id": int(pred[0]),
-        #                 "bbox": np.array([pred[2], pred[3], pred[4], pred[5]]),
-        #                 "segmentation": [],
-        #                 "ignore": 0,
-        #                 "area": (pred[4] - pred[2]) * (pred[5] - pred[3]),
-        #                 "iscrowd": 0,
-        #                 "score": pred[1],
-        #             }
-        #         )
-
-        #         k += 1
-
         return results
 
     def evaluate(self, pred_dict, n_imgs=-1):
