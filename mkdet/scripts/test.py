@@ -112,5 +112,5 @@ class Testor(object):
             self.cfgs_test["submit_dir"],
             f"fold{self.cfgs['fold']}{self.cfgs['memo']}_submit.csv",
         )
-        submit_csv.to_csv(submit_dir)
+        submit_csv.to_csv(submit_dir, index=False)
         print("Submission csv saved in: ", submit_dir)

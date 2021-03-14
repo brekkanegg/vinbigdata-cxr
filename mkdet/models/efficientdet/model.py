@@ -48,6 +48,7 @@ class EfficientDet(nn.Module):
         self.num_channels = W_bifpn
         self.f_start = cfgs["model"]["model"]["feat_start_layer"]
 
+        # FIXME:
         efficientnet = EfficientNet.from_pretrained("efficientnet-" + feature_net)
 
         blocks = []
