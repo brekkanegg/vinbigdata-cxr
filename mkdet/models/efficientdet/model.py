@@ -9,7 +9,8 @@ import torch.nn as nn
 from torchvision.ops import nms
 
 from efficientnet_pytorch import EfficientNet
-import timm
+
+# import timm
 
 # from .efficientnet import EfficientNet
 from .bifpn import BiFPN
@@ -50,10 +51,10 @@ class EfficientDet(nn.Module):
         self.f_start = cfgs["model"]["model"]["feat_start_layer"]
 
         # FIXME:
-        # efficientnet = EfficientNet.from_pretrained("efficientnet-" + feature_net)
-        efficientnet = timm.create_model(
-            "resnest26d", features_only=True, pretrained=True
-        )
+        efficientnet = EfficientNet.from_pretrained("efficientnet-" + feature_net)
+        # efficientnet = timm.create_model(
+        #     "resnest26d", features_only=True, pretrained=True
+        # )
 
         blocks = []
         fpn_channels = []
