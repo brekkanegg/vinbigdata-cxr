@@ -25,7 +25,8 @@ from metrics.cocoeval import VinBigDataEval
 class Validator(object):
     def __init__(self, cfgs, device=None):
 
-        self.cfgs = cfgs        
+        self.cfgs = cfgs
+        self.cfgs_val = cfgs["model"]["val"]
         self.device = device
 
         ####### DATA
@@ -52,7 +53,8 @@ class Validator(object):
 
     def load_model(self):
         self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
-        
+        self.tb_writer = utils.get_writer(self.cfgs)
+
         import models
 
         model = models.get_model(self.cfgs)
@@ -182,21 +184,13 @@ class Validator(object):
 
                     # TODO: use aux_classifier for cls_pred
                     if len(bi_det_preds) == 0:  # No pred bbox
-                        # bi_det_preds = np.ones((1, 6)) * -1
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
-
                     else:
-                        # FIXME:
-                        # bi_dim0 = self.meta_dict[bi_fp]["dim0"]
-                        # bi_dim1 = self.meta_dict[bi_fp]["dim1"]
-                        # bi_det_preds[:, [0, 2]] *= bi_dim0 / self.ims
-                        # bi_det_preds[:, [1, 3]] *= bi_dim1 / self.ims
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
-                        # bi_det_preds = np.round(bi_det_preds).astype(int)
 
                     bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
-                    if self.cfgs["model"]["val"]["use_classifier"]:
-                        if bi_cls_pred < self.cfgs["model"]["val"]["cls_th"]:
+                    if self.cfgs_val["use_classifier"]:
+                        if bi_cls_pred < self.cfgs_val["cls_th"]:
                             bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     cls_pred_tot.append(bi_cls_pred)
@@ -204,15 +198,14 @@ class Validator(object):
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 
                     # GT
-                    bi_det_ann = det_anns[bi]
-                    bi_det_ann = bi_det_ann[bi_det_ann[:, -1] != -1]
+                    bi_det_anns = det_anns[bi]
+                    bi_det_anns = bi_det_anns[bi_det_anns[:, -1] != -1]
 
-                    cls_gt_tot.append(int(len(bi_det_ann) > 0))
+                    cls_gt_tot.append(int(len(bi_det_anns) > 0))
 
-                    if len(bi_det_ann) == 0:  # No pred bbox
-                        # bi_det_preds = np.ones((1, 6)) * -1
+                    if len(bi_det_anns) == 0:  # No pred bbox
                         # This is dummy bbox
-                        bi_det_ann = np.array([[0, 0, 1, 1, 14]])
+                        bi_det_anns = np.array([[0, 0, 1, 1, 14]])
 
                     # evaluation
                     (
@@ -220,15 +213,26 @@ class Validator(object):
                         bi_det_pred_num,
                         bi_det_tp_num,
                         bi_det_fp_num,
-                    ) = evaluate(self.cfgs, bi_det_preds, bi_det_ann)
+                    ) = evaluate(self.cfgs, bi_det_preds, bi_det_anns)
 
                     det_gt_nums_tot += bi_det_gt_num
                     det_tp_nums_tot += bi_det_tp_num
-                    # correct_nums_tot += correct_num
                     det_pred_nums_tot += bi_det_pred_num
                     det_fp_nums_tot += bi_det_fp_num
 
-            # for Visualization - abnormal
+                    # Save_png
+                    if (self.cfgs["run"] == "val") and self.cfgs_val["save_png"]:
+                        self.tb_writer.write_images(
+                            bi_fp,
+                            data["img"][bi].numpy(),
+                            bi_det_preds,
+                            bi_det_anns,
+                            0,
+                            "val",
+                            save=True,
+                        )
+
+            # For Visualization in TB - abnormal
             vizlist = np.random.permutation(list(range(len(data["fp"]))))
             for viz_bi in vizlist:
                 if data["bbox"][viz_bi, 0, -1] != -1:

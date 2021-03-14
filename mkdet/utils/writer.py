@@ -31,22 +31,10 @@ class Writer(SummaryWriter):
         for k1, v1 in scalars_dict.items():
             self.add_scalars(k1, {k2: v2 for k2, v2 in v1.items()}, iteration)
 
-    def write_images(self, fp, img, pred, gt, iteration=None, mode="train"):
+    def write_images(self, fp, img, pred, gt, iteration=None, mode="train", save=False):
         # NOTE:  pred, gt shape: [num_class, size, size]
 
-        if mode == "test":
-            th = self.cfgs["model"]["test"]["prob_ths"][0]
-            save_mode = self.cfgs["model"]["test"]["save_mode"]
-            save_only_wrong = self.cfgs["model"]["test"]["save_only_wrong"]
-
-        else:
-            th = self.cfgs["model"]["val"]["prob_ths"][0]
-            save_mode = ""
-            save_only_wrong = False
-
-        # num_classes = pred.shape[0]
-        # pred = (pred > th).astype(np.float64)
-        # gt = (gt > 0.5).astype(np.float64)  # For soft-label case
+        th = self.cfgs["model"]["test"]["prob_ths"]
 
         gt_bbox, gt_class = gt[:, :4], gt[:, 4]
 
@@ -58,9 +46,7 @@ class Writer(SummaryWriter):
 
         # csv_name = fp.split("png_1024/")[1].split("/")[0]
         # fp = fp.split("png_1024/")[1].replace("/", "-")
-        img_dir_name = "images" + save_mode
-        if save_only_wrong:
-            img_dir_name += "_wrong"
+        img_dir_name = "images"
 
         fig = plt.figure()
         fig.suptitle(fp)
@@ -110,14 +96,12 @@ class Writer(SummaryWriter):
             )
             ax02.add_patch(rect)
 
-        # if save_mode == "concat":
-        #     plt_dir = (
-        #         os.path.join(self.logdir, img_dir_name, csv_name, fp[:-4]) + "_plt.png"
-        #     )
-        #     os.makedirs(os.path.dirname(plt_dir), exist_ok=True)
-        #     plt.savefig(plt_dir)
-        #     plt.close(fig)
+        if save:
+            plt_dir = os.path.join(self.logdir, img_dir_name, fp) + "_plt.png"
+            os.makedirs(os.path.dirname(plt_dir), exist_ok=True)
+            plt.savefig(plt_dir)
+            plt.close(fig)
 
-        # else:
-        self.add_figure("{}_img".format(mode), fig, iteration, close=True)
-        plt.close(fig)
+        else:
+            self.add_figure("{}_img".format(mode), fig, iteration, close=True)
+            plt.close(fig)

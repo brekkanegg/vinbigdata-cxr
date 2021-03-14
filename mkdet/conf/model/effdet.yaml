@@ -38,7 +38,7 @@ train:
 val:
   ignore_epoch: -1
   val_interval: 1
-  prob_ths: [0.5]
+  prob_ths: 0.5
   det_th: 0.1
   nms_th: 0.4
   iou_th: 0.4
@@ -46,6 +46,7 @@ val:
   ignore_normal: False
   use_classifier: True
   cls_th: 0.5
+  save_png: False
 test: 
   prob_ths: 0.5
   iou_th: 0.4

@@ -65,20 +65,20 @@ class VinBigDataEval:
         # print("Generating category data...")
 
         cats = [
-            "Aortic enlargement",  ###
-            "Atelectasis",
-            "Calcification",
-            "Cardiomegaly",  ###
-            "Consolidation",
-            "ILD",
-            "Infiltration",
-            "Lung Opacity",
-            "Nodule/Mass",
-            "Other lesion",  ###
-            "Pleural effusion",
-            "Pleural thickening",
-            "Pneumothorax",
-            "Pulmonary fibrosis",
+            "Aortic enlargement",  ### 0 614
+            "Atelectasis",  ### 1 37
+            "Calcification",  ### 2 90
+            "Cardiomegaly",  ### 3 460
+            "Consolidation",  ### 4 71
+            "ILD",  ### 5 77
+            "Infiltration",  ### 6 123
+            "Lung Opacity",  ### 7 264
+            "Nodule/Mass",  ### 8 165
+            "Other lesion",  ### 9 227
+            "Pleural effusion",  ### 10 206
+            "Pleural thickening",  ### 11 396
+            "Pneumothorax",  ### 12 20
+            "Pulmonary fibrosis",  ### 13 3204
             "No finding",
         ]
 
