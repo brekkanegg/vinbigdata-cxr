@@ -46,7 +46,7 @@ class Testor(object):
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         model = model.to(self.device)
 
-        if self.cfgs_test["epoch"] is not None:
+        if self.cfgs_test["best_epoch"] is not None:
             best_epoch = self.cfgs_test["best_epoch"]
         else:
             with open(
