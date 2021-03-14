@@ -46,8 +46,12 @@ class Testor(object):
         model = model.to(self.device)
 
         with open(os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "rb") as f:
-            tot_val_record = pickle.load(f)
-            best_epoch = tot_val_record["best"]["epoch"]
+            if self.cfgs_test["epoch"] is not None:
+                best_epoch = self.cfgs_test["best_epoch"]
+            else:
+                tot_val_record = pickle.load(f)
+                best_epoch = tot_val_record["best"]["epoch"]
+
             load_model_dir = os.path.join(
                 self.cfgs["save_dir"], "epoch_{}.pt".format(best_epoch)
             )
