@@ -82,14 +82,6 @@ class VinBigDataEval:
             "No finding",
         ]
 
-        # results = []
-
-        # if "class_name" not in df.columns:
-        #     df["class_name"] = df["class_id"]
-
-        # cats = df[["class_name", "class_id"]]
-        # cats = cats.drop_duplicates().sort_values(by="class_id").values
-
         results = []
 
         for icat, cat in enumerate(cats):
@@ -144,34 +136,7 @@ class VinBigDataEval:
 
                 k += 1
 
-        # for idx, image_id in enumerate(image_ids):
-        #     # Add image annotations
-        #     for i, row in df[df["image_id"] == image_id].iterrows():
-        #         results.append(
-        #             {
-        #                 "id": k,
-        #                 "image_id": idx,
-        #                 "category_id": row["class_id"],
-        #                 "bbox": np.array(
-        #                     [row["x_min"], row["y_min"], row["x_max"], row["y_max"]]
-        #                 ),
-        #                 "segmentation": [],
-        #                 "ignore": 0,
-        #                 "area": (row["x_max"] - row["x_min"])
-        #                 * (row["y_max"] - row["y_min"]),
-        #                 "iscrowd": 0,
-        #             }
-        #         )
-
-        #         k += 1
-
         return results
-
-    # def __decode_prediction_string(self, pred_str):
-    #     data = list(map(float, pred_str.split(" ")))
-    #     data = np.array(data)
-
-    #     return data.reshape(-1, 6)
 
     def __gen_predictions(self, pred_dict, image_ids):
         # print("Generating prediction data...")
