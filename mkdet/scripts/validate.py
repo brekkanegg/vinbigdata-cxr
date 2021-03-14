@@ -294,6 +294,9 @@ class Validator(object):
             "coco": coco_evaluation.stats[0],
         }
 
+        if self.cfgs["run"] == "val":
+            print(val_record)
+
         return val_record, val_viz
 
 
