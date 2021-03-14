@@ -22,7 +22,7 @@ from metrics.cocoeval import VinBigDataEval
 
 
 class Validator(object):
-    def __init__(self, cfgs, device):
+    def __init__(self, cfgs, device=None):
 
         self.cfgs = cfgs
         self.device = device
@@ -48,6 +48,36 @@ class Validator(object):
         # Vin Eval
         self.gt_dict = self.get_gt_dict()
         self.vineval = VinBigDataEval(self.gt_dict)
+
+    def load_model(self):
+        import models
+
+        model = models.get_model(self.cfgs)
+        self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
+        model = model.to(self.device)
+
+        # get save_dir
+        save_dict = OrderedDict()
+        save_dict["fold"] = self.cfgs["fold"]
+        if self.cfgs["memo"] is not None:
+            save_dict["memo"] = self.cfgs["memo"]  # 1,2,3
+        specific_dir = ["{}-{}".format(key, save_dict[key]) for key in save_dict.keys()]
+        self.cfgs["save_dir"] = os.path.join(
+            self.cfgs["save_dir"],
+            "_".join(specific_dir),
+        )
+
+        with open(os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "rb") as f:
+            tot_val_record = pickle.load(f)
+            resume_epoch = tot_val_record["best"]["epoch"]
+            load_model_dir = os.path.join(
+                self.cfgs["save_dir"], "epoch_{}.pt".format(resume_epoch)
+            )
+            checkpoint = torch.load(load_model_dir)
+            model.load_state_dict(checkpoint["model"], strict=True)
+            # self.txt_logger.write("\n\nValidate Here! \n\n")
+
+        return model
 
     # get dictionary with nms bbox results
     def get_gt_dict(self):
@@ -106,7 +136,11 @@ class Validator(object):
 
         self.pred_dict = {}
 
-        self.model = model.to(self.device)
+        if model is not None:
+            self.model = model.to(self.device)
+        else:
+            if self.cfgs["run"] == "val":
+                self.model = self.load_model()
 
         ####### Init val result
         num_classes = self.cfgs["model"]["inputs"]["num_classes"]
@@ -165,9 +199,10 @@ class Validator(object):
                         # bi_dim1 = self.meta_dict[bi_fp]["dim1"]
                         # bi_det_preds[:, [0, 2]] *= bi_dim0 / self.ims
                         # bi_det_preds[:, [1, 3]] *= bi_dim1 / self.ims
-                        bi_det_preds = np.round(bi_det_preds).astype(int)
+                        bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
+                        # bi_det_preds = np.round(bi_det_preds).astype(int)
 
-                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi][0]).item()
+                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
                     if self.cfgs["model"]["val"]["use_classifier"]:
                         if bi_cls_pred < self.cfgs["model"]["val"]["cls_th"]:
                             bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])

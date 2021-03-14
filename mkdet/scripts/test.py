@@ -38,8 +38,6 @@ class Testor(object):
 
         cfgs["save_dir"] = os.path.join(
             cfgs["save_dir"],
-            cfgs["model"]["meta"],
-            cfgs["model"]["inputs"]["label"],
             "_".join(specific_dir),
         )
 

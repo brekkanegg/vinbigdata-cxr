@@ -64,6 +64,11 @@ def main(cfgs: DictConfig):
 
         Trainer(cfgs).do_train()
 
+    elif cfgs["run"] == "val":
+        from scripts.validate import Validator
+
+        Validator(cfgs).do_validate()
+
     elif cfgs["run"] == "test":  # 'test' 와 동일,  /train/trainval/val(test)
         from scripts.test import Testor
 

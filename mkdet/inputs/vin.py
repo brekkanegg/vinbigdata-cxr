@@ -103,7 +103,11 @@ class VIN(Dataset):
 
         # FIXME:
 
-        file_path = self.data_dir + f"/png_1024/{self.cfgs['run']}/{pid}.png"
+        run = self.cfgs["run"]
+        if run == "val":
+            run = "train"
+
+        file_path = self.data_dir + f"/png_1024/{run}/{pid}.png"
 
         img = cv2.imread(file_path, -1)
         img = img.astype(np.float32)
@@ -160,8 +164,8 @@ class VIN(Dataset):
                     temp_bb[2] = np.round(bx1 / pid_dimx * ims)
                     temp_bb[3] = np.round(by1 / pid_dimy * ims)
 
-                    if (np.array(temp_bb) > ims).any():
-                        a = 1
+                    # if (np.array(temp_bb) > ims).any():
+                    #     a = 1
 
                     bboxes_coord.append(temp_bb)
                     bboxes_cat.append(bl)

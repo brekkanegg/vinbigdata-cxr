@@ -47,12 +47,12 @@ class VinBigDataEval:
         self.true_dict = true_dict
 
         # self.image_ids = true_df["image_id"].unique()
-        self.image_ids = true_dict.keys()
+        self.image_ids = sorted(true_dict.keys())
         self.annotations = {
             "type": "instances",
             "images": self.__gen_images(self.image_ids),
             "categories": self.__gen_categories(),
-            "annotations": self.__gen_annotations(self.true_dict, self.image_ids),
+            "annotations": self.__gen_annotations(self.image_ids),
         }
 
         self.predictions = {
@@ -65,23 +65,24 @@ class VinBigDataEval:
         # print("Generating category data...")
 
         cats = [
-            "Aortic enlargement",
+            "Aortic enlargement",  ###
             "Atelectasis",
             "Calcification",
-            "Cardiomegaly",
+            "Cardiomegaly",  ###
             "Consolidation",
             "ILD",
             "Infiltration",
             "Lung Opacity",
             "Nodule/Mass",
-            "Other lesion",
+            "Other lesion",  ###
             "Pleural effusion",
             "Pleural thickening",
             "Pneumothorax",
             "Pulmonary fibrosis",
+            "No finding",
         ]
 
-        # results = [{"id": 0, "name": "Aortic enlargement", "supercategory": "none"}]
+        # results = []
 
         # if "class_name" not in df.columns:
         #     df["class_name"] = df["class_id"]
@@ -117,12 +118,13 @@ class VinBigDataEval:
 
         return results
 
-    def __gen_annotations(self, dct, image_ids):
+    def __gen_annotations(self, image_ids):
         # print("Generating annotation data...")
         k = 0
         results = []
 
-        for idx, (img_id, img_info) in enumerate(sorted(dct.items())):
+        for idx, img_id in enumerate(image_ids):
+            img_info = self.true_dict[img_id]
             for bbox in img_info["bbox"]:
                 # bbox: x_min, y_min, x_max, y_max, cat
                 cat_id = bbox[4]
@@ -131,7 +133,7 @@ class VinBigDataEval:
                     {
                         "id": k,
                         "image_id": idx,
-                        "category_id": cat_id,
+                        "category_id": int(cat_id),
                         "bbox": np.array([x_min, y_min, x_max, y_max]),
                         "segmentation": [],
                         "ignore": 0,
@@ -171,20 +173,21 @@ class VinBigDataEval:
 
     #     return data.reshape(-1, 6)
 
-    def __gen_predictions(self, dct, image_ids):
+    def __gen_predictions(self, pred_dict, image_ids):
         # print("Generating prediction data...")
         k = 0
         results = []
 
-        for img_id, img_info in dct.items():
+        for idx, img_id in enumerate(image_ids):
+            img_info = pred_dict[img_id]
             for bbox in img_info["bbox"]:
                 cat_id = bbox[4]
                 x_min, y_min, x_max, y_max = bbox[:4]
                 results.append(
                     {
                         "id": k,
-                        "image_id": img_id,
-                        "category_id": cat_id,
+                        "image_id": idx,
+                        "category_id": int(cat_id),
                         "bbox": np.array([x_min, y_min, x_max, y_max]),
                         "segmentation": [],
                         "ignore": 0,
@@ -235,35 +238,35 @@ class VinBigDataEval:
             COCOEval object
         """
 
-        if pred_dict is not None:
-            self.predictions["annotations"] = self.__gen_predictions(
-                pred_dict, self.image_ids
-            )
+        # if pred_dict is not None:
+        self.predictions["annotations"] = self.__gen_predictions(
+            pred_dict, self.image_ids
+        )
 
-        with HiddenPrints():
+        # with HiddenPrints():
 
-            coco_ds = COCO()
-            coco_ds.dataset = self.annotations
-            coco_ds.createIndex()
+        coco_ds = COCO()
+        coco_ds.dataset = self.annotations
+        coco_ds.createIndex()
 
-            coco_dt = COCO()
-            coco_dt.dataset = self.predictions
-            coco_dt.createIndex()
+        coco_dt = COCO()
+        coco_dt.dataset = self.predictions
+        coco_dt.createIndex()
 
-            imgIds = sorted(coco_ds.getImgIds())
+        imgIds = sorted(coco_ds.getImgIds())
 
-            if n_imgs > 0:
-                imgIds = np.random.choice(imgIds, n_imgs)
+        if n_imgs > 0:
+            imgIds = np.random.choice(imgIds, n_imgs)
 
-            cocoEval = COCOeval(coco_ds, coco_dt, "bbox")
-            cocoEval.params.imgIds = imgIds
-            cocoEval.params.useCats = True
-            cocoEval.params.iouType = "bbox"
-            cocoEval.params.iouThrs = np.array([0.4])
+        cocoEval = COCOeval(coco_ds, coco_dt, "bbox")
+        cocoEval.params.imgIds = imgIds
+        cocoEval.params.useCats = True
+        cocoEval.params.iouType = "bbox"
+        cocoEval.params.iouThrs = np.array([0.4])
 
-            cocoEval.evaluate()
-            cocoEval.accumulate()
-            cocoEval.summarize()
+        cocoEval.evaluate()
+        cocoEval.accumulate()
+        cocoEval.summarize()
 
         return cocoEval
 

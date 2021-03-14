@@ -32,21 +32,19 @@ import opts
 class Trainer(object):
     def __init__(self, cfgs):
 
-        save_dict = OrderedDict()
+        ####### CONFIGS
+        self.cfgs = cfgs
 
+        save_dict = OrderedDict()
         save_dict["fold"] = cfgs["fold"]
         if cfgs["memo"] is not None:
             save_dict["memo"] = cfgs["memo"]  # 1,2,3
         specific_dir = ["{}-{}".format(key, save_dict[key]) for key in save_dict.keys()]
-
-        cfgs["save_dir"] = os.path.join(
+        self.cfgs["save_dir"] = os.path.join(
             cfgs["save_dir"],
             "_".join(specific_dir),
         )
-        os.makedirs(cfgs["save_dir"], exist_ok=True)
-
-        ####### CONFIGS
-        self.cfgs = cfgs
+        os.makedirs(self.cfgs["save_dir"], exist_ok=True)
 
         ####### Logging
         self.tb_writer = utils.get_writer(self.cfgs)
