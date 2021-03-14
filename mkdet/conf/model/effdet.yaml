@@ -14,20 +14,16 @@ opts:
   warmup_epoch: 5
   weight_decay: 5e-6
 loss:
-  pos_weight: 1
   cls_weight: 0.1
   pos_th: 0.4
   neg_th: 0.2
 inputs: 
   image_size: 1024
-  min_size: 24
   label: vin
   num_classes: 15
-  posneg_ratio: 1
   augment: train_multi_augment12
-  use_normal: False
-  use_only_abnormal: False
   label_smooth: 0.1
+  nms: nms_savecat
 train:
   load_ckpt: Null
   resume_train: False
@@ -43,7 +39,6 @@ val:
   nms_th: 0.4
   iou_th: 0.4
   best: coco
-  ignore_normal: False
   use_classifier: True
   cls_th: 0.5
   save_png: False

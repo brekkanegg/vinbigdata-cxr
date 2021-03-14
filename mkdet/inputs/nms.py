@@ -58,3 +58,31 @@ def simple_nms(bboxes_coord, bboxes_cat, iou_th=0.4):
     bboxes_cat = [bb for (idx, bb) in enumerate(bboxes_cat) if keep[idx]]
 
     return bboxes_coord, bboxes_cat
+
+
+def wbf(bboxes_coord, bboxes_cat, iou_th=0.4):
+    pass
+
+
+def nms_savecat(bboxes_coord, bboxes_cat, iou_th=0.5):
+    bbox_sizes = np.array([(x1 - x0) * (y1 - y0) for (x0, y0, x1, y1) in bboxes_coord])
+    order = bbox_sizes.argsort()[::-1]
+    keep = [True] * len(order)
+
+    for i in range(len(order) - 1):
+        for j in range(i + 1, len(order)):
+            if bboxes_cat[order[i]] != bboxes_cat[order[j]]:
+                continue
+
+            ov = check_overlap(bboxes_coord[order[i]], bboxes_coord[order[j]])
+            if ov > iou_th:
+                keep[order[j]] = False
+            else:
+                ov = calc_iou(bboxes_coord[order[i]], bboxes_coord[order[j]])
+                if ov > iou_th:
+                    keep[order[j]] = False
+
+    bboxes_coord = [bb for (idx, bb) in enumerate(bboxes_coord) if keep[idx]]
+    bboxes_cat = [bb for (idx, bb) in enumerate(bboxes_cat) if keep[idx]]
+
+    return bboxes_coord, bboxes_cat

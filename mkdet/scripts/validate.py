@@ -17,6 +17,7 @@ from sklearn.metrics import confusion_matrix
 import utils
 from utils import misc
 import inputs
+from inputs import nms
 import opts
 from metrics.metrics import evaluate
 from metrics.cocoeval import VinBigDataEval
@@ -48,6 +49,7 @@ class Validator(object):
         self.ims = self.cfgs["model"]["inputs"]["image_size"]
 
         # Vin Eval
+        self.nms = self.val_loader.dataset.nms
         self.gt_dict = self.get_gt_dict()
         self.vineval = VinBigDataEval(self.gt_dict)
 
@@ -75,7 +77,6 @@ class Validator(object):
 
     # get dictionary with nms bbox results
     def get_gt_dict(self):
-        from inputs.nms import simple_nms
 
         ims = self.cfgs["model"]["inputs"]["image_size"]
 
@@ -112,8 +113,8 @@ class Validator(object):
 
             # FIXME: simple_nms
             if len(bboxes_coord) >= 2:
-                bboxes_coord, bboxes_cat = simple_nms(
-                    bboxes_coord, bboxes_cat, iou_th=0.25
+                bboxes_coord, bboxes_cat = self.nms(
+                    bboxes_coord, bboxes_cat, iou_th=0.5
                 )
 
             bboxes = [list(b) + [c] for (b, c) in zip(bboxes_coord, bboxes_cat)]

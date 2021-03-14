@@ -97,7 +97,10 @@ class Writer(SummaryWriter):
             ax02.add_patch(rect)
 
         if save:
-            plt_dir = os.path.join(self.logdir, img_dir_name, fp) + "_plt.png"
+            plt_dir = (
+                os.path.join(self.logdir.replace("/ckpt/", f"/{img_dir_name}/"), fp)
+                + "_plt.png"
+            )
             os.makedirs(os.path.dirname(plt_dir), exist_ok=True)
             plt.savefig(plt_dir)
             plt.close(fig)

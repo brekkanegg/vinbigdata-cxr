@@ -78,8 +78,8 @@ class VinBigDataEval:
             "Pleural effusion",  ### 10 206
             "Pleural thickening",  ### 11 396
             "Pneumothorax",  ### 12 20
-            "Pulmonary fibrosis",  ### 13 3204
-            "No finding",
+            "Pulmonary fibrosis",  ### 13 323
+            "No finding",  ### 14 2121
         ]
 
         results = []

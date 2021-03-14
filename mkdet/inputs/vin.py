@@ -14,7 +14,7 @@ import time
 import pickle
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
-from .nms import *
+from . import nms
 
 
 def collater(data):
@@ -59,12 +59,14 @@ class VIN(Dataset):
                 self.meta_dict = pickle.load(f)
 
             self.pids = self.get_train_pids()
-
+            self.nms = getattr(nms, self.cfgs["model"]["inputs"]["nms"])
         else:
             with open(self.data_dir + "/png_1024/test_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
 
             self.pids = list(self.meta_dict.keys())
+
+        
 
     def get_train_pids(self):
 
@@ -179,8 +181,8 @@ class VIN(Dataset):
                 # FIXME:
                 # NOTE: Simple NMS for multi-labeler case
                 if len(bboxes_coord) >= 2:  # ("cst" in mask_path[0]) and
-                    bboxes_coord, bboxes_cat = simple_nms(
-                        bboxes_coord, bboxes_cat, iou_th=0.25
+                    bboxes_coord, bboxes_cat = self.nms(
+                        bboxes_coord, bboxes_cat, iou_th=0.5
                     )
 
                 img_anns = {
