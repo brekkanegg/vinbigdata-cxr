@@ -26,22 +26,35 @@ def check_overlap(bbox_a, bbox_b):
     :param b: bbox list [min_y, min_x, max_y, max_x]
     :return:
     """
-    # Assume bbox_a should be bigger than bbox_b
-    ov = 0
-    if (
-        (bbox_a[0] <= bbox_b[0])
-        and (bbox_a[1] <= bbox_b[1])
-        and (bbox_a[2] >= bbox_b[2])
-        and (bbox_a[3] >= bbox_b[3])
-    ):
-        ov = 1
+
+    bbox_a_size = (bbox_a[3] - bbox_a[1]) * (bbox_a[2] - bbox_a[0])
+    bbox_b_size = (bbox_b[3] - bbox_b[1]) * (bbox_b[2] - bbox_b[0])
+
+    if bbox_a_size < bbox_b_size:
+        ov = 0
+        if (
+            (bbox_a[0] <= bbox_b[0])
+            and (bbox_a[1] <= bbox_b[1])
+            and (bbox_a[2] >= bbox_b[2])
+            and (bbox_a[3] >= bbox_b[3])
+        ):
+            ov = 1
+    else:
+        ov = 0
+        if (
+            (bbox_b[0] <= bbox_a[0])
+            and (bbox_b[1] <= bbox_a[1])
+            and (bbox_b[2] >= bbox_a[2])
+            and (bbox_b[3] >= bbox_a[3])
+        ):
+            ov = 1
 
     return ov
 
 
 def simple_nms(bboxes_coord, bboxes_cat, iou_th=0.4):
     bbox_sizes = np.array([(x1 - x0) * (y1 - y0) for (x0, y0, x1, y1) in bboxes_coord])
-    order = bbox_sizes.argsort()[::-1]
+    order = bbox_sizes.argsort()  # [::-1]
     keep = [True] * len(order)
 
     for i in range(len(order) - 1):
@@ -66,7 +79,7 @@ def wbf(bboxes_coord, bboxes_cat, iou_th=0.4):
 
 def nms_savecat(bboxes_coord, bboxes_cat, iou_th=0.5):
     bbox_sizes = np.array([(x1 - x0) * (y1 - y0) for (x0, y0, x1, y1) in bboxes_coord])
-    order = bbox_sizes.argsort()[::-1]
+    order = bbox_sizes.argsort()  # [::-1]
     keep = [True] * len(order)
 
     for i in range(len(order) - 1):

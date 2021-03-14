@@ -24,6 +24,7 @@ inputs:
   augment: train_multi_augment12
   label_smooth: 0.1
   nms: nms_savecat
+  nms_th: 0.5
 train:
   load_ckpt: Null
   resume_train: False
