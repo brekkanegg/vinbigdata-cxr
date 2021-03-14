@@ -86,7 +86,7 @@ class Testor(object):
                         bi_dimx = self.meta_dict[bi_fp]["dim1"]
                         bi_det_preds[:, [0, 2]] *= bi_dimx / self.ims
                         bi_det_preds[:, [1, 3]] *= bi_dimy / self.ims
-                        bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
+                        bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4])
 
                     bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
                     if self.cfgs["model"]["test"]["use_classifier"]:
@@ -97,7 +97,9 @@ class Testor(object):
                     pred_string = ""
                     for det_i in bi_det_preds:
                         x0, y0, x1, y1, c, cf = det_i
-                        pred_string += f" {c} {cf} {x0} {y0} {x1} {y1}"
+                        pred_string += (
+                            f" {int(c)} {cf} {int(x0)} {int(y0)} {int(x1)} {int(y1)}"
+                        )
 
                     pred_string = pred_string[1:]  # remove left blank
 

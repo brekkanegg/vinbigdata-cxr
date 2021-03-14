@@ -59,18 +59,11 @@ def evaluate(cfgs, pred_bbox, gt_bbox):
     """
 
     num_classes = cfgs["model"]["inputs"]["num_classes"]
-    # image_size = cfgs["model"]["inputs"]["image_size"]
 
     iou_th = 0.4
     prob_th = 0.5
 
-    # if (cfgs["run"] == "train") or (cfgs['run'] == 'val')
-    # elif cfgs["run"] == "test":
-    #     iou_th = 0.4
-    #     prob_th = 0.5
-
     # 초기화
-    # gt_nums = np.array([len(gt_bbox[gt_bbox[:, -1] == c]) for c in range(num_classes)])
     gt_nums = np.zeros(num_classes)
     tp_nums = np.zeros(num_classes)
     pred_nums = np.zeros(num_classes)
@@ -93,8 +86,6 @@ def evaluate(cfgs, pred_bbox, gt_bbox):
             for pi, pr in enumerate(thi_c_pred_bbox):
                 # BBox-IoU based
                 iou_matrix[gi, pi] = calc_iou(gr, pr)
-                # Region-IoU based
-                # iou_matrix[gi, pi] = calc_iou_region(gr, pr)
 
         tp_nums[c] = np.sum(np.any((iou_matrix >= iou_th), axis=1))
         fp_nums[c] -= np.sum(np.any((iou_matrix > iou_th), axis=0))
