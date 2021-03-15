@@ -55,13 +55,13 @@ class VIN(Dataset):
         self.transform = transform
 
         if self.mode != "test":
-            with open(self.data_dir + "/png_1024/train_meta_dict.pickle", "rb") as f:
+            with open(self.data_dir + "/train_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
 
             self.pids = self.get_train_pids()
             self.nms = getattr(nms, self.cfgs["model"]["inputs"]["nms"])
         else:
-            with open(self.data_dir + "/png_1024/test_meta_dict.pickle", "rb") as f:
+            with open(self.data_dir + "/test_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
 
             self.pids = list(self.meta_dict.keys())
@@ -113,9 +113,9 @@ class VIN(Dataset):
         ims = self.cfgs["model"]["inputs"]["image_size"]
 
         if self.cfgs["run"] != "test":
-            file_path = self.data_dir + f"/png_1024/train/{pid}.png"
+            file_path = self.data_dir + f"/train/{pid}.png"
         else:
-            file_path = self.data_dir + f"/png_1024/test/{pid}.png"
+            file_path = self.data_dir + f"/test/{pid}.png"
 
         img = cv2.imread(file_path, -1)
         img = img.astype(np.float32)

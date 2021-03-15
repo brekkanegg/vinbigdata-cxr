@@ -20,7 +20,7 @@ use_amp: True
 local_rank: 0
 # data_dir: /nfs3/chestpa
 save_dir: /nfs3/minki/kaggle/vinbigdata-cxr/mkdet/ckpt
-data_dir: /data2/minki/kaggle/vinbigdata-cxr
+data_dir: /data2/minki/kaggle/vinbigdata-cxr/png_1024
 fold: 1
 do_profiling: False
 memo: Null

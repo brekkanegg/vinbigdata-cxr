@@ -7,7 +7,7 @@ model:
   feat_start_layer: 1
 opts:
   optimizer: adamw #adamw
-  learning_rate: 1e-4
+  learning_rate: 3e-3
   beta1: 0.9
   beta2: 0.999
   scheduler: cosineWR #cosineWR #Null
@@ -33,7 +33,7 @@ train:
   endurance: 25
   display_interval: 4
 val:
-  ignore_epoch: -1
+  ignore_epoch: 5
   val_interval: 1
   prob_ths: 0.5
   det_th: 0.1

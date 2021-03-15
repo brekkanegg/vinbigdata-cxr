@@ -8,8 +8,9 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torchvision.ops import nms
 
-# from efficientnet_pytorch import EfficientNet  # outdated
-import timm
+from efficientnet_pytorch import EfficientNet
+
+# import timm
 
 from .bifpn import BiFPN
 from .retinahead import RetinaHead
@@ -43,16 +44,37 @@ class EfficientDet(nn.Module):
 
         # pytorch-image-models
         # https://github.com/rwightman/pytorch-image-models#models
-        self.efficientnet = timm.create_model(
-            "tf_efficientnet_b4_ns", features_only=True, pretrained=True
+        # self.efficientnet = timm.create_model(
+        #     "tf_efficientnet_b4_ns", features_only=True, pretrained=True
+        # )
+
+        # dummy = self.efficientnet(torch.randn(2, 3, 256, 256))
+        # fpn_channels = [i.shape[1] for i in dummy]
+        # self.bifpn = BiFPN(
+        #     in_channels=fpn_channels[self.f0 + 1 : self.f0 + 4],
+        #     num_channels=self.W_bifpn,
+        #     num_layers=self.D_bifpn,
+        # )
+
+        efficientnet = EfficientNet.from_pretrained("efficientnet-" + feature_net)
+
+        blocks = []
+        fpn_channels = []
+        for block in efficientnet._blocks:
+            blocks.append(block)
+            if block._depthwise_conv.stride == [2, 2]:
+                fpn_channels.append(block._project_conv.out_channels)
+                if len(fpn_channels) >= 4:
+                    break
+
+        self.bifpn = BiFPN(
+            in_channels=fpn_channels[self.f0 : self.f0 + 3],
+            num_channels=EfficientNet_CFG[feature_net][0],
+            num_layers=EfficientNet_CFG[feature_net][1],
         )
 
-        dummy = self.efficientnet(torch.randn(2, 3, 256, 256))
-        fpn_channels = [i.shape[1] for i in dummy]
-        self.bifpn = BiFPN(
-            in_channels=fpn_channels[self.f0 + 1 : self.f0 + 4],
-            num_channels=self.W_bifpn,
-            num_layers=self.D_bifpn,
+        self.efficientnet = nn.Sequential(
+            efficientnet._conv_stem, efficientnet._bn0, *blocks
         )
 
         self.aux_classifier = classifier2(fpn_channels[-1])
@@ -81,8 +103,18 @@ class EfficientDet(nn.Module):
 
         outputs_dict = {}
 
-        features = self.efficientnet(inputs)
-        x_feat = self.bifpn(features[self.f0 + 1 : self.f0 + 4])
+        x = self.efficientnet[0](inputs)
+        x = self.efficientnet[1](x)
+        # Forward batch through backbone
+        features = []
+        for block in self.efficientnet[2:]:
+            x = block(x)
+            if block._depthwise_conv.stride == [2, 2]:
+                features.append(x)
+        x_feat = self.bifpn(features[self.f0 : self.f0 + 3])
+
+        # features = self.efficientnet(inputs)
+        # x_feat = self.bifpn(features[self.f0 + 1 : self.f0 + 4])
 
         if self.cfgs["model"]["loss"]["cls_weight"] > 0:
             # FIXME:
@@ -145,6 +177,36 @@ class EfficientDet(nn.Module):
             outputs_dict["preds"] = preds
 
         return outputs_dict
+
+        # # Original
+        # scores_over_thresh = (scores > self.args.det_threshold)[0, :, 0]
+        # if scores_over_thresh.sum() == 0:
+        #     print("No boxes to NMS")
+        #     # no boxes to NMS, just return
+        #     return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
+        # classification = classification[:, scores_over_thresh, :]
+        # transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
+        # scores = scores[:, scores_over_thresh, :]
+
+        # anchors_nms_idx = nms(
+        #     transformed_anchors[0, :, :],
+        #     scores[0, :, 0],
+        #     iou_threshold=self.args.iou_threshold,
+        # )
+        # nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(dim=1)
+        # return [
+        #     nms_scores,
+        #     nms_class,
+        #     transformed_anchors[0, anchors_nms_idx, :],
+        # ]
+
+    # def extract_feat(self, img):
+    #     """
+    #     Directly extract features from the backbone+neck
+    #     """
+    #     x = self.efficientnet(img)
+    #     x = self.neck(x[-5:])
+    #     return x
 
     def _init_weights(self):
         for m in self.modules():
