@@ -185,30 +185,30 @@ class VinBigDataEval:
             pred_dict, self.image_ids
         )
 
-        # with HiddenPrints():
+        with HiddenPrints():
 
-        coco_ds = COCO()
-        coco_ds.dataset = self.annotations
-        coco_ds.createIndex()
+            coco_ds = COCO()
+            coco_ds.dataset = self.annotations
+            coco_ds.createIndex()
 
-        coco_dt = COCO()
-        coco_dt.dataset = self.predictions
-        coco_dt.createIndex()
+            coco_dt = COCO()
+            coco_dt.dataset = self.predictions
+            coco_dt.createIndex()
 
-        imgIds = sorted(coco_ds.getImgIds())
+            imgIds = sorted(coco_ds.getImgIds())
 
-        if n_imgs > 0:
-            imgIds = np.random.choice(imgIds, n_imgs)
+            if n_imgs > 0:
+                imgIds = np.random.choice(imgIds, n_imgs)
 
-        cocoEval = COCOeval(coco_ds, coco_dt, "bbox")
-        cocoEval.params.imgIds = imgIds
-        cocoEval.params.useCats = True
-        cocoEval.params.iouType = "bbox"
-        cocoEval.params.iouThrs = np.array([0.4])
+            cocoEval = COCOeval(coco_ds, coco_dt, "bbox")
+            cocoEval.params.imgIds = imgIds
+            cocoEval.params.useCats = True
+            cocoEval.params.iouType = "bbox"
+            cocoEval.params.iouThrs = np.array([0.4])
 
-        cocoEval.evaluate()
-        cocoEval.accumulate()
-        cocoEval.summarize()
+            cocoEval.evaluate()
+            cocoEval.accumulate()
+            cocoEval.summarize()
 
         return cocoEval
 
