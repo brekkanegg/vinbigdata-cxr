@@ -34,7 +34,7 @@ class Writer(SummaryWriter):
     def write_images(self, fp, img, pred, gt, iteration=None, mode="train", save=False):
         # NOTE:  pred, gt shape: [num_class, size, size]
 
-        th = self.cfgs["meta"]["test"]["prob_ths"]
+        th = self.cfgs["meta"]["test"]["prob_th"]
 
         gt_bbox, gt_class = gt[:, :4], gt[:, 4]
 
