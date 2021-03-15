@@ -97,9 +97,11 @@ class Testor(object):
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4])
 
                     bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
-                    if self.cfgs["meta"]["test"]["use_classifier"]:
-                        if bi_cls_pred < self.cfgs["meta"]["test"]["cls_th"]:
-                            bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+                    # FIXME:
+                    if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+                        if self.cfgs["meta"]["test"]["use_classifier"]:
+                            if bi_cls_pred < self.cfgs["meta"]["test"]["cls_th"]:
+                                bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     # TODO: to string format
                     pred_string = ""

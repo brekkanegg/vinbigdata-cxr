@@ -55,6 +55,8 @@ class Trainer(object):
         ####### Data
 
         train_dataset = inputs.get_dataset(self.cfgs, mode="train")
+        self.txt_logger.write("\nTrain:  \n{}\n".format(len(train_dataset)))
+
         train_sampler = None
         self.train_loader = DataLoader(
             dataset=train_dataset,
@@ -73,6 +75,9 @@ class Trainer(object):
 
         ####### Validator
         self.validator = Validator(self.cfgs, self.device)
+        self.txt_logger.write(
+            "Val:  \n{}\n".format(len(self.validator.val_loader.dataset))
+        )
 
     def do_train(self):
 
@@ -227,55 +232,59 @@ class Trainer(object):
                 self.tot_val_record["best"]["epoch"] = self.epoch + 1
                 self.tot_val_record["best"]["iteration"] = self.iter
                 self.endurance = 0
-                # else:
-                #     self.endurance += 1
+            else:
+                self.endurance += 1
 
-                take_time = utils.convert_time(time.time() - self.start_time)
-                vloss = val_record["loss"]
-                vdloss = val_record["dloss"]
-                vcloss = val_record["closs"]
-                vbest_epoch = self.tot_val_record["best"]["epoch"]
-                # metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
-                # metric_keys += ["cls_auc", "cls_sens", "cls_spec"]
-                # val_logs = [vloss] + [val_record[k] for k in metric_keys]
+            take_time = utils.convert_time(time.time() - self.start_time)
+            vloss = val_record["loss"]
+            vdloss = val_record["dloss"]
+            vcloss = val_record["closs"]
+            vbest_epoch = self.tot_val_record["best"]["epoch"]
 
-                self.txt_logger.write(
-                    f"\repoch: {self.epoch+1}, time: {take_time}, tdloss: {dloss:.4f}, tcloss: {closs:.4f}, vdloss: {vdloss:.4f}, vcloss: {vcloss:.4f}"
-                )
+            self.txt_logger.write(
+                f"\repoch: {self.epoch+1}, time: {take_time}, tdloss: {dloss:.4f}, tcloss: {closs:.4f}, vdloss: {vdloss:.4f}, vcloss: {vcloss:.4f}"
+            )
+            self.txt_logger.write("\n")
+
+            for k in ["det_recl", "det_prec", "det_fppi", "det_f1"]:
+                self.txt_logger.write(f"{k}: ")
+                for v in val_record[k]:
+                    self.txt_logger.write(f"{v:.2f} ")
                 self.txt_logger.write("\n")
-                for k in ["det_recl", "det_prec", "det_fppi", "det_f1"]:
-                    self.txt_logger.write(f"{k}: ")
-                    for v in val_record[k]:
-                        self.txt_logger.write(f"{v:.2f} ")
-                    self.txt_logger.write("\n")
-                for k in ["cls_auc", "cls_sens", "cls_spec", "coco"]:
+
+            if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+                for k in ["cls_auc", "cls_sens", "cls_spec"]:
                     self.txt_logger.write(f"{k}: {val_record[k]:.2f}")
                     self.txt_logger.write("\n")
-                self.txt_logger.write(f"best epoch: {vbest_epoch}")
-                self.txt_logger.write("\n", txt_write=True)
-                self.txt_logger.write("\n", txt_write=False)
 
-                self.tb_writer.write_images(
-                    val_viz["fp"],
-                    val_viz["img"],
-                    val_viz["pred"],
-                    val_viz["ann"],
-                    self.iter,
-                    "val",
-                )
+            self.txt_logger.write(f"coco: {val_record['coco']:.2f}")
+            self.txt_logger.write("\n")
+            self.txt_logger.write(f"best epoch: {vbest_epoch}")
+            self.txt_logger.write("\n", txt_write=True)
+            self.txt_logger.write("\n", txt_write=False)
 
-                self.tb_writer.add_scalar("coco", val_record["coco"], self.epoch)
-                metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
-                self.tb_writer.write_scalars(
-                    {
-                        "metrics": {
-                            "{}".format(key): val_record[key][:-1].mean()
-                            for key in metric_keys
-                        }
-                    },
-                    self.iter,
-                )
+            self.tb_writer.write_images(
+                val_viz["fp"],
+                val_viz["img"],
+                val_viz["pred"],
+                val_viz["ann"],
+                self.iter,
+                "val",
+            )
 
+            self.tb_writer.add_scalar("coco", val_record["coco"], self.epoch)
+            metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
+            self.tb_writer.write_scalars(
+                {
+                    "metrics": {
+                        "{}".format(key): val_record[key][:-1].mean()
+                        for key in metric_keys
+                    }
+                },
+                self.iter,
+            )
+
+            if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
                 metric_keys = ["cls_auc", "cls_sens", "cls_spec"]
                 self.tb_writer.write_scalars(
                     {
@@ -286,11 +295,11 @@ class Trainer(object):
                     self.iter,
                 )
 
-                self.tb_writer.write_scalars({"loss": {"v loss": vloss}}, self.iter)
-                self.tb_writer.write_scalars({"dloss": {"v dloss": vdloss}}, self.iter)
-                self.tb_writer.write_scalars({"closs": {"v closs": vcloss}}, self.iter)
+            self.tb_writer.write_scalars({"loss": {"v loss": vloss}}, self.iter)
+            self.tb_writer.write_scalars({"dloss": {"v dloss": vdloss}}, self.iter)
+            self.tb_writer.write_scalars({"closs": {"v closs": vcloss}}, self.iter)
 
-                with open(
-                    os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "wb"
-                ) as f:
-                    pickle.dump(self.tot_val_record, f)
+            with open(
+                os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "wb"
+            ) as f:
+                pickle.dump(self.tot_val_record, f)

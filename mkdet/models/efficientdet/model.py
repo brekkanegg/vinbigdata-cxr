@@ -61,7 +61,8 @@ class EfficientDet(nn.Module):
             num_layers=4,  # D_bifpn
         )
 
-        self.aux_classifier = classifier2(fpn_channels[-1], self.W_bifpn)
+        if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+            self.aux_classifier = classifier2(fpn_channels[-1], self.W_bifpn)
 
         self._init_weights()
 
@@ -90,7 +91,7 @@ class EfficientDet(nn.Module):
         features = self.efficientnet(inputs)
         x_feat = self.bifpn(features[self.f0 + 1 : self.f0 + 4])
 
-        if self.cfgs["meta"]["loss"]["cls_weight"] > 0:
+        if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
             # FIXME:
             # aux_cls = self.aux_classifier(x_feat[-1])
             aux_cls = self.aux_classifier(features[-1])
@@ -114,7 +115,8 @@ class EfficientDet(nn.Module):
             scores_over_thresh = (scores > det_th)[:, :, 0]
 
             preds = {}
-            # FIXME:
+
+            # FIXME: batch-wise nms
 
             for bi in range(scores.shape[0]):
                 bi_scores_over_thresh = scores_over_thresh[bi, :]

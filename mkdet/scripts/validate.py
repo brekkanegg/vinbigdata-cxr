@@ -188,26 +188,26 @@ class Validator(object):
                     bi_det_preds = logits["preds"][bi].detach().cpu().numpy()
                     bi_det_preds = bi_det_preds[bi_det_preds[:, -1] != -1]
 
-                    # TODO: use aux_classifier for cls_pred
                     if len(bi_det_preds) == 0:  # No pred bbox
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
                     else:
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
 
-                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
-                    if self.cfgs_val["use_classifier"]:
-                        if bi_cls_pred < self.cfgs_val["cls_th"]:
-                            bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
-
-                    cls_pred_tot.append(bi_cls_pred)
-
-                    self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
-
                     # GT
                     bi_det_anns = det_anns[bi]
                     bi_det_anns = bi_det_anns[bi_det_anns[:, -1] != -1]
 
-                    cls_gt_tot.append(int(len(bi_det_anns) > 0))
+                    if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+                        bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
+                        if self.cfgs_val["use_classifier"]:
+                            if bi_cls_pred < self.cfgs_val["cls_th"]:
+                                bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+
+                        cls_pred_tot.append(bi_cls_pred)
+
+                        cls_gt_tot.append(int(len(bi_det_anns) > 0))
+
+                    self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 
                     if len(bi_det_anns) == 0:  # No pred bbox
                         # This is dummy bbox
@@ -263,25 +263,6 @@ class Validator(object):
         det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)
         det_fppi = det_fp_nums_tot / (nums_tot + 1e-5)
 
-        cls_gt_tot = np.array(cls_gt_tot)
-        cls_pred_tot = np.array(cls_pred_tot)
-
-        try:
-            tn, fp, fn, tp = confusion_matrix(cls_gt_tot, cls_pred_tot > 0.5).ravel()
-            cls_sens = tp / (tp + fn + 1e-5)
-            cls_spec = tn / (tn + fp + 1e-5)
-            cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
-
-        except Exception as e:
-            cls_auc = 0
-            cls_sens = 0
-            cls_spec = 0
-
-        # except class 14 - normal
-        # det_pc = det_pc[0, :-1].mean()
-        # det_rc = det_rc[0, :-1].mean()
-        # det_fppi = det_fppi[0, :-1].mean()
-
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
             "dloss": (dlosses_tot / (nums_tot + 1e-5)),
@@ -290,11 +271,20 @@ class Validator(object):
             "det_recl": det_rc,
             "det_fppi": det_fppi,
             "det_f1": 2 * det_pc * det_rc / (det_pc + det_rc + 1e-5),
-            "cls_auc": cls_auc,
-            "cls_sens": cls_sens,
-            "cls_spec": cls_spec,
             "coco": coco_evaluation.stats[0],
         }
+
+        if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+            cls_gt_tot = np.array(cls_gt_tot)
+            cls_pred_tot = np.array(cls_pred_tot)
+            tn, fp, fn, tp = confusion_matrix(cls_gt_tot, cls_pred_tot > 0.5).ravel()
+            cls_sens = tp / (tp + fn + 1e-5)
+            cls_spec = tn / (tn + fp + 1e-5)
+            cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
+
+            val_record["cls_auc"] = cls_auc
+            val_record["cls_sens"] = cls_sens
+            val_record["cls_spec"] = cls_spec
 
         if self.cfgs["run"] == "val":
             print(val_record)

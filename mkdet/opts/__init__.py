@@ -57,12 +57,14 @@ def calc_loss(cfgs, device, data, logits):
 
     criterion = FocalLoss(cfgs)
     loss_det = criterion(logits, data["bbox"].to(device))
+    loss_cls = torch.tensor(0.0).to(device)
 
-    if cfgs_loss["cls_weight"] > 0:
+    # if cfgs_loss["cls_weight"] > 0:
+    if not cfgs["meta"]["inputs"]["abnormal_only"]:
         aux_cls_criterion = nn.BCEWithLogitsLoss()
         data_cls = data["bbox"][:, :, -1][:, 0].unsqueeze(-1)
         data_cls = (data_cls > -1).float()
         data_cls = torch.clamp(data_cls, 0.1, 0.9)
         loss_cls = aux_cls_criterion(logits["aux_cls"], data_cls.to(device))
 
-        return loss_det, loss_cls
+    return loss_det, loss_cls

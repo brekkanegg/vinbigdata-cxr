@@ -23,6 +23,7 @@ inputs:
   label_smooth: 0.1
   nms: wbf
   nms_th: 0.5
+  abnormal_only: False
 train:
   load_ckpt: Null
   resume_train: False
@@ -35,7 +36,7 @@ val:
   val_interval: 1
   prob_ths: 0.5
   det_th: 0.1
-  nms_th: 0.4
+  nms_th: 0.5
   iou_th: 0.4
   best: coco
   use_classifier: True

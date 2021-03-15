@@ -72,9 +72,11 @@ class VIN(Dataset):
         # MultilabelStratified KFold
         xs = np.array(list(self.meta_dict.keys()))
         ys = []
-        for v in self.meta_dict.values():
+        for x in xs:
+            v = self.meta_dict[x]
             temp_lbl = np.array(v["bbox"])[:, 2]
-            temp = np.zeros((self.cfgs["meta"]["inputs"]["num_classes"]))
+            # temp = np.zeros((self.cfgs["meta"]["inputs"]["num_classes"]))
+            temp = np.zeros((15))
             for i in temp_lbl:
                 temp[int(i)] = 1
             ys.append(temp)
@@ -85,6 +87,27 @@ class VIN(Dataset):
 
         for _ in range(self.cfgs["fold"] + 1):
             train_index, val_index = next(kfold_generator)
+
+        # use only abnormal
+        if self.cfgs["meta"]["inputs"]["abnormal_only"]:
+            is_abnormal = np.array([False] * len(xs))
+            for idx, x in enumerate(xs):
+                v = np.array(self.meta_dict[x]["bbox"])
+                v = v[v[:, 2] != "14"]
+                if len(v) > 0:
+                    is_abnormal[idx] = True
+
+            train_index_temp = np.array([False] * len(xs))
+            for i in train_index:
+                train_index_temp[i] = True
+            train_index = is_abnormal * train_index_temp
+
+            val_index_temp = np.array([False] * len(xs))
+            for i in val_index:
+                val_index_temp[i] = True
+            val_index = is_abnormal * val_index_temp
+
+        #     break
 
         if self.mode == "train":
             pids = xs[train_index]
@@ -121,7 +144,7 @@ class VIN(Dataset):
         img = img.astype(np.float32)
 
         if img.shape[1] != self.inputs_cfgs["image_size"]:
-            img = cv2.resize(img, (ims, ims))
+            img = cv2.resize(img, (ims, ims), interpolation=cv2.INTER_LANCZOS4)
 
         img = self.windowing(img)
         img = img.astype(np.float32)
