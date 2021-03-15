@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 from torchvision.ops import nms
+from torchvision.ops import batched_nms
 
 # from efficientnet_pytorch import EfficientNet  # outdated
 import timm
@@ -111,12 +112,10 @@ class EfficientDet(nn.Module):
             det_th = self.cfgs["meta"]["val"]["det_th"]
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, inputs)
-            scores = torch.max(classification, dim=2, keepdim=True)[0]
+            scores, scores_class = torch.max(classification, dim=2, keepdim=True)
             scores_over_thresh = (scores > det_th)[:, :, 0]
 
             preds = {}
-
-            # FIXME: batch-wise nms
 
             for bi in range(scores.shape[0]):
                 bi_scores_over_thresh = scores_over_thresh[bi, :]
@@ -126,7 +125,7 @@ class EfficientDet(nn.Module):
                     preds[bi] = torch.zeros((0, 6))  # bbox(4), class(1), score(1)
                     continue
 
-                bi_transformed_anchors = transformed_anchors[bi, :, :]
+                # bi_transformed_anchors = transformed_anchors[bi, :, :]
                 bi_classification = classification[bi, bi_scores_over_thresh, :]
                 bi_transformed_anchors = transformed_anchors[
                     bi, bi_scores_over_thresh, :
@@ -155,6 +154,22 @@ class EfficientDet(nn.Module):
             outputs_dict["preds"] = preds
 
         return outputs_dict
+
+        #     ################ TODO: batched_nms???
+        #     anchors_nms_idx = batched_nms(
+        #         boxes=transformed_anchors[scores_over_thresh, :],
+        #         scores=scores[scores_over_thresh],
+        #         idxs=scores_class[scores_over_thresh],
+        #         iou_threshold=self.cfgs["meta"]["val"]["nms_th"],
+        #     )
+
+        #     nms_score = scores[:, anchors_nms_idx, 0]
+        #     nms_class = scores_class[anchors_nms_idx]
+        #     nms_bbox = transformed_anchors[anchors_nms_idx]
+
+        #     outputs_dict["preds"] = pred_bbox
+
+        # return outputs_dict
 
     def _init_weights(self):
         for m in self.modules():

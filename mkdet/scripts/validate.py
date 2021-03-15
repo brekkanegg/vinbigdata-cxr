@@ -131,8 +131,9 @@ class Validator(object):
     def do_validate(self, model=None):
 
         if self.gt_dict is None:
-            self.gt_dict = self.get_gt_dict()
-            self.vineval = VinBigDataEval(self.gt_dict)
+            if not self.cfgs["memo"] == "dryrun":
+                self.gt_dict = self.get_gt_dict()
+                self.vineval = VinBigDataEval(self.gt_dict)
 
         self.pred_dict = {}
 

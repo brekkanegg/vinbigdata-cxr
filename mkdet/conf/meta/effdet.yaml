@@ -5,7 +5,7 @@ model:
   feat_start_layer: 1
 opts:
   optimizer: adamw #adamw
-  learning_rate: 1e-4
+  learning_rate: 5e-4
   beta1: 0.9
   beta2: 0.999
   scheduler: cosineWR #cosineWR #Null
@@ -34,19 +34,19 @@ train:
 val:
   ignore_epoch: 5
   val_interval: 1
-  prob_ths: 0.5
+  # prob_th: 0.1
   det_th: 0.1
   nms_th: 0.5
-  iou_th: 0.4
+  # iou_th: 0.4
   best: coco
   use_classifier: True
-  cls_th: 0.5
+  cls_th: 0.5   # use classifier case
   save_png: False
 test: 
-  prob_ths: 0.5
-  iou_th: 0.4
+  prob_th: 0.1  # inference 
+  # iou_th: 0.4
   use_classifier: True
-  cls_th: 0.5
+  cls_th: 0.5  # use classifier case
   best_epoch: Null
   submit_dir: /nfs3/minki/kaggle/vinbigdata-cxr/submit
  

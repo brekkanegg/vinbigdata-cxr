@@ -83,7 +83,7 @@ class Testor(object):
                     # Prediciton
                     bi_det_preds = logits["preds"][bi].detach().cpu().numpy()
                     bi_det_preds = bi_det_preds[
-                        bi_det_preds[:, -1] >= self.cfgs_test["prob_ths"]
+                        bi_det_preds[:, -1] >= self.cfgs_test["prob_th"]
                     ]
 
                     if len(bi_det_preds) == 0:  # No pred bbox
