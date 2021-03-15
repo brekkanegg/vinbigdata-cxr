@@ -22,29 +22,35 @@ EfficientNet_CFG = {
     "b1": [88, 3, 3],  # 640
     "b2": [112, 4, 3],  # 768
     "b3": [160, 5, 4],  # 896
-    "b4": [224, 6, 4],  # 1024
+    "b4": [224, 6, 4],  # 1024   [224, 6, 4],  # 1024
     "b5": [288, 7, 4],  # 1280
     "b6": [384, 8, 5],  # 1408
 }
 
 
 class EfficientDet(nn.Module):
-    def __init__(self, cfgs, feature_net="b4", pretrained=True):
+    def __init__(self, cfgs, pretrained=True):
 
         super(EfficientDet, self).__init__()
 
         self.cfgs = cfgs
+        self.name = cfgs["meta"]["model"]["name"]  #  "tf_efficientnet_b4_ns"
+        self.efficientnet = timm.create_model(
+            self.name, features_only=True, pretrained=pretrained
+        )
 
-        self.W_bifpn = EfficientNet_CFG[feature_net][0]
-        self.D_bifpn = EfficientNet_CFG[feature_net][1]
-        self.L_head = EfficientNet_CFG[feature_net][2]
+        mname = self.name.split("_")[2]
+
+        self.W_bifpn = EfficientNet_CFG[mname][0]
+        self.D_bifpn = EfficientNet_CFG[mname][1]
+        self.L_head = EfficientNet_CFG[mname][2]
 
         self.f0 = cfgs["meta"]["model"]["feat_start_layer"]
 
         # pytorch-image-models
         # https://github.com/rwightman/pytorch-image-models#models
         self.efficientnet = timm.create_model(
-            "tf_efficientnet_b4_ns", features_only=True, pretrained=pretrained
+            self.name, features_only=True, pretrained=pretrained
         )
 
         dummy = self.efficientnet(torch.randn(2, 3, 256, 256))
@@ -52,10 +58,10 @@ class EfficientDet(nn.Module):
         self.bifpn = BiFPN(
             in_channels=fpn_channels[self.f0 + 1 : self.f0 + 4],
             num_channels=self.W_bifpn,
-            num_layers=self.D_bifpn,
+            num_layers=4,  # D_bifpn
         )
 
-        self.aux_classifier = classifier2(fpn_channels[-1])
+        self.aux_classifier = classifier2(fpn_channels[-1], self.W_bifpn)
 
         self._init_weights()
 
@@ -108,6 +114,8 @@ class EfficientDet(nn.Module):
             scores_over_thresh = (scores > det_th)[:, :, 0]
 
             preds = {}
+            # FIXME:
+
             for bi in range(scores.shape[0]):
                 bi_scores_over_thresh = scores_over_thresh[bi, :]
                 if bi_scores_over_thresh.sum() == 0:

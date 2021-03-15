@@ -181,7 +181,7 @@ class VIN(Dataset):
                 # NOTE: Simple NMS for multi-labeler case
                 if len(bboxes_coord) >= 2:  # ("cst" in mask_path[0]) and
                     bboxes_coord, bboxes_cat = self.nms(
-                        bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.5
+                        bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.5, image_size=ims
                     )
 
                 img_anns = {

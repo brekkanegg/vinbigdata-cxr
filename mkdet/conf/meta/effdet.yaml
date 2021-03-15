@@ -1,13 +1,11 @@
 # @package _group_
 meta: EffDet
 model: 
-  name: EfficientDet
-  backbone: efficientnet-b4
-  cls: True
+  name: tf_efficientnet_b4_ns
   feat_start_layer: 1
 opts:
   optimizer: adamw #adamw
-  learning_rate: 3e-3
+  learning_rate: 1e-4
   beta1: 0.9
   beta2: 0.999
   scheduler: cosineWR #cosineWR #Null

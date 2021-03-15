@@ -19,8 +19,8 @@ def main(cfgs: DictConfig):
     os.environ["HYDRA_FULL_ERROR"] = "1"
 
     # For Reproductibility
-    cudnn.deterministic = cfgs["determ"]
-    cudnn.benchmark = not cfgs["determ"]
+    cudnn.deterministic = True
+    cudnn.benchmark = False
     random.seed(52)
     np.random.seed(52)
     torch.random.manual_seed(52)

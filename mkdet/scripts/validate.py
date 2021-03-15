@@ -44,8 +44,10 @@ class Validator(object):
 
         # Vin Eval
         self.nms = self.val_loader.dataset.nms
-        self.gt_dict = self.get_gt_dict()
-        self.vineval = VinBigDataEval(self.gt_dict)
+
+        # init
+        self.gt_dict = None
+        self.vineval = None
 
     def load_model(self):
         self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
@@ -110,10 +112,10 @@ class Validator(object):
                     bboxes_cat.append(blabel)
                     bboxes_rad.append(brad)
 
-            # FIXME: simple_nms
             if len(bboxes_coord) >= 2:
+
                 bboxes_coord, bboxes_cat = self.nms(
-                    bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.5
+                    bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.5, image_size=ims
                 )
 
             bboxes = [list(b) + [c] for (b, c) in zip(bboxes_coord, bboxes_cat)]
@@ -127,6 +129,10 @@ class Validator(object):
         return temp_dict
 
     def do_validate(self, model=None):
+
+        if self.gt_dict is None:
+            self.gt_dict = self.get_gt_dict()
+            self.vineval = VinBigDataEval(self.gt_dict)
 
         self.pred_dict = {}
 

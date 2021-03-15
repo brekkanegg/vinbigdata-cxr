@@ -66,11 +66,11 @@ class ClipBoxes(nn.Module):
 
 
 class AuxClassificationModel(nn.Module):
-    def __init__(self, num_channels=224):
+    def __init__(self, in_channels=224, num_channels=224):
         super(AuxClassificationModel, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.conv1 = nn.Conv2d(
-            num_channels, num_channels, kernel_size=1, stride=1, padding=0
+            in_channels, num_channels, kernel_size=1, stride=1, padding=0
         )
         self.act1 = nn.ReLU()
 
@@ -85,14 +85,6 @@ class AuxClassificationModel(nn.Module):
         self.act3 = nn.ReLU()
 
         self.logit = nn.Conv2d(num_channels, 1, kernel_size=1, stride=1, padding=0)
-
-    # def init_weights(self):
-    #     for m in self.modules():
-    #         if isinstance(m, nn.Conv2d):
-    #             nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
-    #         elif isinstance(m, nn.BatchNorm2d):
-    #             nn.init.constant_(m.weight, 1)
-    #             nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         x = self.avg_pool(x)
