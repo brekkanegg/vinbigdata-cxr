@@ -50,7 +50,7 @@ class RetinaHead(nn.Module):
         super(RetinaHead, self).__init__()
         self.cfgs = cfgs
         self.in_channels = in_channels
-        self.num_classes = cfgs["model"]["inputs"]["num_classes"]
+        self.num_classes = cfgs["meta"]["inputs"]["num_classes"]
         self.feat_channels = feat_channels
         self.anchor_scales = anchor_scales
         self.anchor_ratios = anchor_ratios

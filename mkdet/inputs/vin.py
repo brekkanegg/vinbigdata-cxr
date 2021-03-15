@@ -49,7 +49,7 @@ class VIN(Dataset):
     def __init__(self, cfgs, transform=None, mode="train"):
 
         self.cfgs = cfgs
-        self.inputs_cfgs = cfgs["model"]["inputs"]
+        self.inputs_cfgs = cfgs["meta"]["inputs"]
         self.data_dir = cfgs["data_dir"]
         self.mode = mode
         self.transform = transform
@@ -59,7 +59,7 @@ class VIN(Dataset):
                 self.meta_dict = pickle.load(f)
 
             self.pids = self.get_train_pids()
-            self.nms = getattr(nms, self.cfgs["model"]["inputs"]["nms"])
+            self.nms = getattr(nms, self.cfgs["meta"]["inputs"]["nms"])
         else:
             with open(self.data_dir + "/test_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
@@ -74,7 +74,7 @@ class VIN(Dataset):
         ys = []
         for v in self.meta_dict.values():
             temp_lbl = np.array(v["bbox"])[:, 2]
-            temp = np.zeros((self.cfgs["model"]["inputs"]["num_classes"]))
+            temp = np.zeros((self.cfgs["meta"]["inputs"]["num_classes"]))
             for i in temp_lbl:
                 temp[int(i)] = 1
             ys.append(temp)
@@ -96,11 +96,11 @@ class VIN(Dataset):
         return pids
 
     def __len__(self):
-        if self.cfgs["model"]["train"]["samples_per_epoch"] is None:
+        if self.cfgs["meta"]["train"]["samples_per_epoch"] is None:
             samples_per_epoch = len(self.pids)
         else:
             samples_per_epoch = min(
-                self.cfgs["model"]["train"]["samples_per_epoch"], len(self.pids)
+                self.cfgs["meta"]["train"]["samples_per_epoch"], len(self.pids)
             )
         return samples_per_epoch
 
@@ -110,7 +110,7 @@ class VIN(Dataset):
         """
 
         pid = self.pids[index]
-        ims = self.cfgs["model"]["inputs"]["image_size"]
+        ims = self.cfgs["meta"]["inputs"]["image_size"]
 
         if self.cfgs["run"] != "test":
             file_path = self.data_dir + f"/train/{pid}.png"

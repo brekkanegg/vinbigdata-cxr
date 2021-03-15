@@ -47,7 +47,9 @@ class Trainer(object):
         self.txt_logger.write("\n\nConfigs: \n{}\n".format(self.cfgs))
 
         ####### MODEL
-        model = models.get_model(self.cfgs)
+        model = models.get_model(
+            self.cfgs, pretrained=(not self.cfgs["meta"]["train"]["resume_train"])
+        )
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         self.model = model.to(self.device)
 
@@ -79,7 +81,7 @@ class Trainer(object):
         self.epoch, self.iter, self.resume_epoch = 0, 0, 0
         self.tot_val_record = {"best": {"loss": np.inf, "coco": -1}}
 
-        if self.cfgs["model"]["train"]["resume_train"]:
+        if self.cfgs["meta"]["train"]["resume_train"]:
             with open(
                 os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "rb"
             ) as f:
@@ -102,15 +104,15 @@ class Trainer(object):
         ####### Train
         self.start_time = time.time()
         self.endurance = 0
-        for epoch in range(self.resume_epoch, self.cfgs["model"]["train"]["max_epoch"]):
+        for epoch in range(self.resume_epoch, self.cfgs["meta"]["train"]["max_epoch"]):
 
             self.one_epoch_steps = len(self.train_loader)
             self.display_step = (
-                self.one_epoch_steps // self.cfgs["model"]["train"]["display_interval"]
+                self.one_epoch_steps // self.cfgs["meta"]["train"]["display_interval"]
             )
 
             self.epoch = epoch
-            if self.endurance > self.cfgs["model"]["train"]["endurance"]:
+            if self.endurance > self.cfgs["meta"]["train"]["endurance"]:
                 self.txt_logger.write(
                     "\nStop training! No more performance gain expected!"
                 )
@@ -134,7 +136,7 @@ class Trainer(object):
             logits = self.model(img)
 
             dloss, closs = opts.calc_loss(self.cfgs, self.device, data, logits)
-            loss = dloss + self.cfgs["model"]["loss"]["cls_weight"] * closs
+            loss = dloss + self.cfgs["meta"]["loss"]["cls_weight"] * closs
 
             self.grad_scaler.scale(loss).backward()
             self.grad_scaler.step(self.optimizer)
@@ -188,8 +190,8 @@ class Trainer(object):
 
             self.iter += 1
 
-            lr0 = self.cfgs["model"]["opts"]["learning_rate"]
-            wep = self.cfgs["model"]["opts"]["warmup_epoch"]
+            lr0 = self.cfgs["meta"]["opts"]["learning_rate"]
+            wep = self.cfgs["meta"]["opts"]["warmup_epoch"]
             if self.epoch < wep:
                 for pg in self.optimizer.param_groups:
                     pg["lr"] = lr0 / wep * (self.epoch + i / self.one_epoch_steps)
@@ -197,15 +199,15 @@ class Trainer(object):
                 if not self.scheduler is None:
                     self.scheduler.step(self.epoch - wep + i / self.one_epoch_steps)
 
-        # if self.epoch > self.cfgs["model"]["val"]["ignore_epoch"]:
+        # if self.epoch > self.cfgs["meta"]["val"]["ignore_epoch"]:
 
         # Do Validation
         val_record, val_viz = self.validator.do_validate(self.model)
         self.tot_val_record[str(self.epoch + 1)] = val_record
-        val_best = val_record[self.cfgs["model"]["val"]["best"]]
+        val_best = val_record[self.cfgs["meta"]["val"]["best"]]
 
         # Save Model
-        select_metric = self.cfgs["model"]["val"]["best"]
+        select_metric = self.cfgs["meta"]["val"]["best"]
         val_improved = False
         if val_best >= self.tot_val_record["best"][select_metric]:
             val_improved = True

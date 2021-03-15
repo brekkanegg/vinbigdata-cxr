@@ -29,7 +29,7 @@ EfficientNet_CFG = {
 
 
 class EfficientDet(nn.Module):
-    def __init__(self, cfgs, feature_net="b4"):
+    def __init__(self, cfgs, feature_net="b4", pretrained=True):
 
         super(EfficientDet, self).__init__()
 
@@ -39,12 +39,12 @@ class EfficientDet(nn.Module):
         self.D_bifpn = EfficientNet_CFG[feature_net][1]
         self.L_head = EfficientNet_CFG[feature_net][2]
 
-        self.f0 = cfgs["model"]["model"]["feat_start_layer"]
+        self.f0 = cfgs["meta"]["model"]["feat_start_layer"]
 
         # pytorch-image-models
         # https://github.com/rwightman/pytorch-image-models#models
         self.efficientnet = timm.create_model(
-            "tf_efficientnet_b4_ns", features_only=True, pretrained=True
+            "tf_efficientnet_b4_ns", features_only=True, pretrained=pretrained
         )
 
         dummy = self.efficientnet(torch.randn(2, 3, 256, 256))
@@ -84,7 +84,7 @@ class EfficientDet(nn.Module):
         features = self.efficientnet(inputs)
         x_feat = self.bifpn(features[self.f0 + 1 : self.f0 + 4])
 
-        if self.cfgs["model"]["loss"]["cls_weight"] > 0:
+        if self.cfgs["meta"]["loss"]["cls_weight"] > 0:
             # FIXME:
             # aux_cls = self.aux_classifier(x_feat[-1])
             aux_cls = self.aux_classifier(features[-1])
@@ -101,7 +101,7 @@ class EfficientDet(nn.Module):
         outputs_dict["anchors"] = anchors
 
         if mode != "train":
-            det_th = self.cfgs["model"]["val"]["det_th"]
+            det_th = self.cfgs["meta"]["val"]["det_th"]
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, inputs)
             scores = torch.max(classification, dim=2, keepdim=True)[0]
@@ -126,7 +126,7 @@ class EfficientDet(nn.Module):
                 bi_anchors_nms_idx = nms(
                     bi_transformed_anchors,
                     bi_scores[:, 0],
-                    iou_threshold=self.cfgs["model"]["val"]["nms_th"],
+                    iou_threshold=self.cfgs["meta"]["val"]["nms_th"],
                 )
                 bi_nms_scores, bi_nms_class = bi_classification[
                     bi_anchors_nms_idx, :

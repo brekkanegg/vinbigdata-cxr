@@ -20,7 +20,7 @@ class Writer(SummaryWriter):
 
         self.label2color = {
             class_id: [random.random() for _ in range(3)]
-            for class_id in range(self.cfgs["model"]["inputs"]["num_classes"])
+            for class_id in range(self.cfgs["meta"]["inputs"]["num_classes"])
         }
 
     def write_scalar(self, scalar_dict, iteration):
@@ -34,7 +34,7 @@ class Writer(SummaryWriter):
     def write_images(self, fp, img, pred, gt, iteration=None, mode="train", save=False):
         # NOTE:  pred, gt shape: [num_class, size, size]
 
-        th = self.cfgs["model"]["test"]["prob_ths"]
+        th = self.cfgs["meta"]["test"]["prob_ths"]
 
         gt_bbox, gt_class = gt[:, :4], gt[:, 4]
 

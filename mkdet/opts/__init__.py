@@ -3,7 +3,7 @@ from .losses import *
 
 
 def get_optimizer(cfgs, parameters):
-    cfgs_opts = cfgs["model"]["opts"]
+    cfgs_opts = cfgs["meta"]["opts"]
 
     if cfgs_opts["optimizer"] == "adam":
         optimizer = torch.optim.Adam(
@@ -34,7 +34,7 @@ def get_optimizer(cfgs, parameters):
 
 
 def get_scheduler(cfgs, optimizer):
-    cfgs_opts = cfgs["model"]["opts"]
+    cfgs_opts = cfgs["meta"]["opts"]
     if cfgs_opts["scheduler"] == "cosineWR":
         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
             optimizer=optimizer, T_0=10, T_mult=1
@@ -53,7 +53,7 @@ def get_scheduler(cfgs, optimizer):
 
 
 def calc_loss(cfgs, device, data, logits):
-    cfgs_loss = cfgs["model"]["loss"]
+    cfgs_loss = cfgs["meta"]["loss"]
 
     criterion = FocalLoss(cfgs)
     loss_det = criterion(logits, data["bbox"].to(device))

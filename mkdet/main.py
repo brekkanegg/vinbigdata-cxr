@@ -1,35 +1,7 @@
-"""
-example) python -m torch.distributed.launch --nnodes 1 --node_rank 0 --nproc_per_node 2 main.py --run train --dryrun True --gpu 6 7
-
-
-python -m torch.distributed.launch --help
-usage: launch.py [-h] [--nnodes NNODES] [--node_rank NODE_RANK]
-                 [--nproc_per_node NPROC_PER_NODE] [--master_addr MASTER_ADDR]
-                 [--master_port MASTER_PORT] [--use_env] [-m] [--no_python]
-
-Distributed Data Parallel
-node: machine(server)
-rank: gpu
-world_size: tot gpu num
-
-[Example] hydra 유의
-- $python main.py gpu=[0], model=deeplab, model.inputs.image_size=1024 
-- DDP + Hydra : 현재 같이 못 씀, 추후 수정
-
-[Script 설명]
-- train.py : 학습 코드
-- validate.py: train.py 에서 validation 하는 부분만 따로 빼놓음
-- test.py: csv 별로 validate 하고 metric 구하기
-- inference.py: (추후 구현) label 없는 경우 inference
-
-"""
-
-import argparse
 import matplotlib
 
 matplotlib.use("Agg")  # tensorboardX
 import os, sys
-import json
 import torch
 import random
 import numpy as np
@@ -37,9 +9,6 @@ import hydra
 from omegaconf import OmegaConf
 from omegaconf import DictConfig
 
-from collections import OrderedDict
-
-import torch.distributed as dist
 import torch.backends.cudnn as cudnn
 
 
@@ -69,7 +38,7 @@ def main(cfgs: DictConfig):
 
         Validator(cfgs).do_validate()
 
-    elif cfgs["run"] == "test":  # 'test' 와 동일,  /train/trainval/val(test)
+    elif cfgs["run"] == "test":  # submission file 만들기
         from scripts.test import Testor
 
         Testor(cfgs).do_test()

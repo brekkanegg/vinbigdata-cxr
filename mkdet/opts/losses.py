@@ -46,9 +46,9 @@ class FocalLoss(nn.Module):
 
         alpha = 0.25
         gamma = 2.0
-        pos_th = self.cfgs["model"]["loss"]["pos_th"]  # 0.25
-        neg_th = self.cfgs["model"]["loss"]["neg_th"]  # 0.05
-        ls = self.cfgs["model"]["inputs"]["label_smooth"]  # 0.05
+        pos_th = self.cfgs["meta"]["loss"]["pos_th"]  # 0.25
+        neg_th = self.cfgs["meta"]["loss"]["neg_th"]  # 0.05
+        ls = self.cfgs["meta"]["inputs"]["label_smooth"]  # 0.05
 
         batch_size = classifications.shape[0]
         classification_losses = []

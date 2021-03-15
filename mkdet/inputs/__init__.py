@@ -15,9 +15,9 @@ def get_dataset(cfgs, mode, specific_csv=None):
 
 
 def get_augmentation(cfgs):
-    if cfgs["model"]["inputs"]["augment"] == "train_multi_augment12":
+    if cfgs["meta"]["inputs"]["augment"] == "train_multi_augment12":
         aug_fn = train_multi_augment12
-    elif cfgs["inputs"]["augment"]["augment"] is None:
+    elif cfgs["meta"]["inputs"]["augment"]["augment"] is None:
         aug_fn = None
 
     return aug_fn

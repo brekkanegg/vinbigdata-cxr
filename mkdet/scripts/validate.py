@@ -3,22 +3,16 @@ import torch
 import numpy as np
 import pandas as pd
 import pickle
-import cv2
-from collections import OrderedDict
-from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
-import torch.distributed as dist
 from torch.utils.data import DataLoader
-from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data.distributed import DistributedSampler
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 
 import utils
 from utils import misc
 import inputs
-from inputs import nms
 import opts
+
 from metrics.metrics import evaluate
 from metrics.cocoeval import VinBigDataEval
 
@@ -27,7 +21,7 @@ class Validator(object):
     def __init__(self, cfgs, device=None):
 
         self.cfgs = cfgs
-        self.cfgs_val = cfgs["model"]["val"]
+        self.cfgs_val = cfgs["meta"]["val"]
         self.device = device
 
         ####### DATA
@@ -46,7 +40,7 @@ class Validator(object):
         )
 
         self.meta_dict = self.val_loader.dataset.meta_dict
-        self.ims = self.cfgs["model"]["inputs"]["image_size"]
+        self.ims = self.cfgs["meta"]["inputs"]["image_size"]
 
         # Vin Eval
         self.nms = self.val_loader.dataset.nms
@@ -59,7 +53,7 @@ class Validator(object):
 
         import models
 
-        model = models.get_model(self.cfgs)
+        model = models.get_model(self.cfgs, pretrained=False)
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         model = model.to(self.device)
 
@@ -78,7 +72,7 @@ class Validator(object):
     # get dictionary with nms bbox results
     def get_gt_dict(self):
 
-        ims = self.cfgs["model"]["inputs"]["image_size"]
+        ims = self.cfgs["meta"]["inputs"]["image_size"]
 
         temp_dict = {}
         for pid in tqdm(self.val_loader.dataset.pids):
@@ -143,7 +137,7 @@ class Validator(object):
                 self.model = self.load_model()
 
         ####### Init val result
-        num_classes = self.cfgs["model"]["inputs"]["num_classes"]
+        num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
 
         det_gt_nums_tot = np.zeros(num_classes)
         det_tp_nums_tot = np.zeros(num_classes)
@@ -168,7 +162,7 @@ class Validator(object):
 
                 logits = self.model(img, mode="val")
                 dloss, closs = opts.calc_loss(self.cfgs, self.device, data, logits)
-                loss = dloss + self.cfgs["model"]["loss"]["cls_weight"] * closs
+                loss = dloss + self.cfgs["meta"]["loss"]["cls_weight"] * closs
 
                 loss = loss.detach().item()
                 dloss = dloss.detach().item()

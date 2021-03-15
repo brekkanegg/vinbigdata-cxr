@@ -16,7 +16,7 @@ class Testor(object):
     def __init__(self, cfgs, device=None):
 
         self.cfgs = cfgs
-        self.cfgs_test = self.cfgs["model"]["test"]
+        self.cfgs_test = self.cfgs["meta"]["test"]
         self.device = device
 
         ####### DATA
@@ -35,7 +35,7 @@ class Testor(object):
         )
 
         self.meta_dict = self.test_loader.dataset.meta_dict
-        self.ims = self.cfgs["model"]["inputs"]["image_size"]
+        self.ims = self.cfgs["meta"]["inputs"]["image_size"]
 
     def load_model(self):
         self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
@@ -97,8 +97,8 @@ class Testor(object):
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4])
 
                     bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
-                    if self.cfgs["model"]["test"]["use_classifier"]:
-                        if bi_cls_pred < self.cfgs["model"]["test"]["cls_th"]:
+                    if self.cfgs["meta"]["test"]["use_classifier"]:
+                        if bi_cls_pred < self.cfgs["meta"]["test"]["cls_th"]:
                             bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     # TODO: to string format

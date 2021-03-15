@@ -7,7 +7,7 @@ hydra:
     dir: "${save_dir}/fold-${fold}_memo-${memo}"
 
 defaults:
-  - model: effdet
+  - meta: effdet
   # - hydra/job_logging: colorlog
   # - hydra/hydra_logging: colorlog
 

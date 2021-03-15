@@ -58,7 +58,7 @@ def evaluate(cfgs, pred_bbox, gt_bbox):
     #         # 따라서 영상 크기에 대해 기준이 변경되는 것은 현단계에서는 적용할 필요가 없어 보입니다.
     """
 
-    num_classes = cfgs["model"]["inputs"]["num_classes"]
+    num_classes = cfgs["meta"]["inputs"]["num_classes"]
 
     iou_th = 0.4
     prob_th = 0.5
