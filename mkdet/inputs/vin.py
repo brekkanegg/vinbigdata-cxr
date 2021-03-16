@@ -107,7 +107,7 @@ class VIN(Dataset):
                 val_index_temp[i] = True
             val_index = is_abnormal * val_index_temp
 
-        #     break
+        #     break21
 
         if self.mode == "train":
             pids = xs[train_index]
@@ -141,7 +141,7 @@ class VIN(Dataset):
             file_path = self.data_dir + f"/test/{pid}.png"
 
         img = cv2.imread(file_path, -1)
-        img = img.astype(np.float32)
+        # img = img.astype(np.float32)
 
         if img.shape[1] != self.inputs_cfgs["image_size"]:
             if self.data_dir.endswith("png_1024"):

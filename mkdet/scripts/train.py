@@ -26,6 +26,7 @@ from utils import misc
 import inputs
 
 import models
+# from models.efficientdet.model import EfficientDet
 import opts
 
 
@@ -48,6 +49,7 @@ class Trainer(object):
 
         ####### MODEL
         pretrained = not self.cfgs["meta"]["train"]["resume_train"]
+
         model = models.get_model(self.cfgs, pretrained=pretrained)
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         self.model = model.to(self.device)

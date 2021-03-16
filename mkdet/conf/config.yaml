@@ -1,10 +1,10 @@
-hydra:
-  job_logging:
-    formatters:
-      colorlog:
-        format: "[%(blue)s%(name)s%(reset)s][%(log_color)s%(levelname)s%(reset)s] - %(message)s"
-  run:
-    dir: "${save_dir}/fold-${fold}_memo-${memo}"
+# hydra:
+#   job_logging:
+#     formatters:
+#       colorlog:
+#         format: "[%(blue)s%(name)s%(reset)s][%(log_color)s%(levelname)s%(reset)s] - %(message)s"
+#   run:
+#     dir: "${save_dir}/fold-${fold}_memo-${memo}"
 
 defaults:
   - meta: effdet
@@ -20,7 +20,7 @@ use_amp: True
 local_rank: 0
 # data_dir: /nfs3/chestpa
 save_dir: /nfs3/minki/kaggle/vinbigdata-cxr/mkdet/ckpt
-data_dir: /data2/minki/kaggle/vinbigdata-cxr/png_1024
+data_dir: /data2/minki/kaggle/vinbigdata-cxr/png_1024l
 fold: 1
 do_profiling: False
 memo: Null

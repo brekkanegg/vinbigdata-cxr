@@ -54,6 +54,7 @@ class Validator(object):
         self.tb_writer = utils.get_writer(self.cfgs)
 
         import models
+        # from models.efficientdet.model import EfficientDet
 
         model = models.get_model(self.cfgs, pretrained=False)
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))

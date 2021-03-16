@@ -1,6 +1,7 @@
 **/__pycache__/
 nohup.out
 ipynbs/
+outputs/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

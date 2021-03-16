@@ -53,7 +53,7 @@ def check_overlap(bbox_a, bbox_b):
     return ov
 
 
-def simple_nms(bboxes_coord, bboxes_cat, bboxes_rad=None, iou_th=0.4, image_size=None):
+def nms_naive(bboxes_coord, bboxes_cat, bboxes_rad=None, iou_th=0.4, image_size=None):
     bbox_sizes = np.array([(x1 - x0) * (y1 - y0) for (x0, y0, x1, y1) in bboxes_coord])
     order = bbox_sizes.argsort()  # [::-1]
     keep = [True] * len(order)
