@@ -54,6 +54,7 @@ class Validator(object):
         self.tb_writer = utils.get_writer(self.cfgs)
 
         import models
+
         # from models.efficientdet.model import EfficientDet
 
         model = models.get_model(self.cfgs, pretrained=False)
@@ -172,9 +173,9 @@ class Validator(object):
                 dloss, closs = opts.calc_loss(self.cfgs, self.device, data, logits)
                 loss = dloss + self.cfgs["meta"]["loss"]["cls_weight"] * closs
 
-                loss = loss.detach().item()
-                dloss = dloss.detach().item()
-                closs = closs.detach().item()
+                # loss = loss.detach().item()
+                # dloss = dloss.detach().item()
+                # closs = closs.detach().item()
                 losses_tot += loss * len(data["fp"])
                 dlosses_tot += dloss * len(data["fp"])
                 closses_tot += closs * len(data["fp"])
@@ -187,12 +188,13 @@ class Validator(object):
                     bi_fp = data["fp"][bi]
 
                     # Prediciton
-                    bi_det_preds = logits["preds"][bi].detach().cpu().numpy()
+                    bi_det_preds = logits["preds"][bi]  # .detach().cpu().numpy()
                     bi_det_preds = bi_det_preds[bi_det_preds[:, -1] != -1]
 
                     if len(bi_det_preds) == 0:  # No pred bbox
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
                     else:
+                        bi_det_preds = bi_det_preds.detach().cpu().numpy()
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
 
                     # GT
@@ -216,12 +218,20 @@ class Validator(object):
                         bi_det_anns = np.array([[0, 0, 1, 1, 14]])
 
                     # evaluation
-                    (
-                        bi_det_gt_num,
-                        bi_det_pred_num,
-                        bi_det_tp_num,
-                        bi_det_fp_num,
-                    ) = evaluate(self.cfgs, bi_det_preds, bi_det_anns)
+                    if (len(bi_det_preds) == 0) and (len(bi_det_anns) == 0):
+                        num_classes = self.imscfgs["meta"]["inputs"]["num_classes"]
+                        bi_det_gt_num = np.zeros(num_classes)
+                        bi_det_pred_num = np.zeros(num_classes)
+                        bi_det_tp_num = np.zeros(num_classes)
+                        bi_det_fp_num = np.zeros(num_classes)
+
+                    else:
+                        (
+                            bi_det_gt_num,
+                            bi_det_pred_num,
+                            bi_det_tp_num,
+                            bi_det_fp_num,
+                        ) = evaluate(self.cfgs, bi_det_preds, bi_det_anns)
 
                     det_gt_nums_tot += bi_det_gt_num
                     det_tp_nums_tot += bi_det_tp_num

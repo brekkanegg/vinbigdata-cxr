@@ -74,12 +74,34 @@ class Testor(object):
     def do_test(self):
 
         load_dir = input("Test ckpt dir: ")
-        load_epoch = input("Test epoch: ")
         try:
             memo = input("Submit csv name: ")
         except SyntaxError:
             print("Enter submit csv name")
             raise ()
+        load_epoch = input("Test epoch: ")
+        reduce_size = input("Reduce bbox size (t/f): ")
+        if reduce_size == "t":
+            reduce_size = True
+        else:
+            reduce_size = False
+
+        # use_classifier = input("Use classifier (t/f): ")
+        # if use_classifier == "f":
+        #     use_classifier = False
+        # else:
+        #     use_classifier = True
+
+        print("\n\nCheck following: ")
+        print("Image Size: ", self.cfgs["meta"]["inputs"]["image_size"])
+        print(
+            "Detection only - use abnormal only: ",
+            self.cfgs["meta"]["inputs"]["abnormal_only"],
+        )
+        print(
+            "Num Classes - include No Finding: ",
+            self.cfgs["meta"]["inputs"]["num_classes"],
+        )
 
         print("Doing Inference.. ")
         self.model = self.load_model(load_dir, load_epoch)
@@ -112,16 +134,19 @@ class Testor(object):
                         bi_det_preds[:, [1, 3]] *= bi_dimy / self.ims
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4])
 
-                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
                     # FIXME:
                     if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-                        if self.cfgs["meta"]["test"]["use_classifier"]:
-                            if bi_cls_pred < self.cfgs["meta"]["test"]["cls_th"]:
-                                bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+                        bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
+
+                        if bi_cls_pred < self.cfgs["meta"]["test"]["cls_th"]:
+                            bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     pred_string = ""
                     for det_i in bi_det_preds:
                         x0, y0, x1, y1, c, cf = det_i
+                        if reduce_size:
+                            (x0, y0, x1, y1) = reduce_bbox((x0, y0, x1, y1))
+
                         pred_string += (
                             f" {int(c)} {cf} {int(x0)} {int(y0)} {int(x1)} {int(y1)}"
                         )
@@ -132,6 +157,34 @@ class Testor(object):
 
         # Make submit csv
         submit_csv = pd.DataFrame(submit_df, columns=["image_id", "PredictionString"])
+
+        # Check number of normal row
+        print("\n\nTotal Number of Rows: ", len(submit_csv))
+        print(
+            "Number of Normal Rows: ",
+            len(submit_csv[submit_csv["PredictionString"] == "14 1 0 0 1 1"]),
+        )
+
         submit_dir = os.path.join(self.cfgs_test["submit_dir"], f"{memo}_submit.csv")
         submit_csv.to_csv(submit_dir, index=False)
         print("Submission csv saved in: ", submit_dir)
+
+
+def reduce_bbox(bbox, r=0.9):
+    x0, y0, x1, y1 = bbox
+    if bbox == (0, 0, 1, 1):
+        return bbox
+
+    rx = (x1 - x0) * r / 2
+    ry = (y1 - y0) * r / 2
+    cx = (x0 + x1) / 2
+    cy = (y0 + y1) / 2
+
+    resized_bbox = (
+        np.round(cx - rx),
+        np.round(cy - ry),
+        np.round(cx + rx),
+        np.round(cy + ry),
+    )
+
+    return resized_bbox

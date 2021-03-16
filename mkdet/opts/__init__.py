@@ -57,7 +57,7 @@ def calc_loss(cfgs, device, data, logits):
 
     criterion = FocalLoss(cfgs)
     loss_det = criterion(logits, data["bbox"].to(device))
-    loss_cls = torch.tensor(0.0).to(device)
+    loss_cls = torch.tensor(0.0, device=device)
 
     # if cfgs_loss["cls_weight"] > 0:
     if not cfgs["meta"]["inputs"]["abnormal_only"]:
