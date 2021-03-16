@@ -144,7 +144,11 @@ class VIN(Dataset):
         img = img.astype(np.float32)
 
         if img.shape[1] != self.inputs_cfgs["image_size"]:
-            img = cv2.resize(img, (ims, ims), interpolation=cv2.INTER_LANCZOS4)
+            if self.data_dir.endswith("png_1024"):
+                interpolation = cv2.INTER_LINEAR
+            elif self.data_dir.endswith("png_1024l"):
+                interpolation = cv2.INTER_LANCZOS4
+            img = cv2.resize(img, (ims, ims), interpolation=interpolation)
 
         img = self.windowing(img)
         img = img.astype(np.float32)
