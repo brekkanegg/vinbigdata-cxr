@@ -277,7 +277,8 @@ class Validator(object):
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
             self.vineval.image_ids = sorted(self.pred_dict.keys())
 
-        mAP, APs = self.vineval.evaluate(self.pred_dict)
+        coco_eval = self.vineval.evaluate(self.pred_dict)
+        mAP, APs = coco_eval.stats
 
         # det_pc = det_tp_nums_tot / (det_pred_nums_tot + 1e-5)
         # det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)
