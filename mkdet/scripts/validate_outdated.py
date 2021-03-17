@@ -151,12 +151,12 @@ class Validator(object):
                 self.model = self.load_model()
 
         ####### Init val result
-        # num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
+        num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
 
-        # det_gt_nums_tot = np.zeros(num_classes)
-        # det_tp_nums_tot = np.zeros(num_classes)
-        # det_fp_nums_tot = np.zeros(num_classes)
-        # det_pred_nums_tot = np.zeros(num_classes)
+        det_gt_nums_tot = np.zeros(num_classes)
+        det_tp_nums_tot = np.zeros(num_classes)
+        det_fp_nums_tot = np.zeros(num_classes)
+        det_pred_nums_tot = np.zeros(num_classes)
         nums_tot = 0
         losses_tot = 0
         dlosses_tot = 0
@@ -203,14 +203,14 @@ class Validator(object):
                         bi_det_preds = bi_det_preds.detach().cpu().numpy()
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
 
-                    # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
-                    # if self.cfgs_val["use_classifier"]:
-                    if bi_cls_pred < self.cfgs_val["cls_th"]:
-                        bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+                    if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+                        bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
+                        if self.cfgs_val["use_classifier"]:
+                            if bi_cls_pred < self.cfgs_val["cls_th"]:
+                                bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
-                    cls_pred_tot.append(bi_cls_pred)
-                    cls_gt_tot.append(int(len(bi_det_anns) > 0))
+                        cls_pred_tot.append(bi_cls_pred)
+                        cls_gt_tot.append(int(len(bi_det_anns) > 0))
 
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 
@@ -218,29 +218,29 @@ class Validator(object):
                         # This is dummy bbox
                         bi_det_anns = np.array([[0, 0, 1, 1, 14]])
 
-                    # # evaluation
-                    # if (
-                    #     np.array_equal(bi_det_preds, np.array([[0, 0, 1, 1, 14, 1]]))
-                    # ) and np.array_equal(bi_det_anns, np.array([[0, 0, 1, 1, 14]])):
+                    # evaluation
+                    if (
+                        np.array_equal(bi_det_preds, np.array([[0, 0, 1, 1, 14, 1]]))
+                    ) and np.array_equal(bi_det_anns, np.array([[0, 0, 1, 1, 14]])):
 
-                    #     num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
-                    #     bi_det_gt_num = np.zeros(num_classes)
-                    #     bi_det_pred_num = np.zeros(num_classes)
-                    #     bi_det_tp_num = np.zeros(num_classes)
-                    #     bi_det_fp_num = np.zeros(num_classes)
+                        num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
+                        bi_det_gt_num = np.zeros(num_classes)
+                        bi_det_pred_num = np.zeros(num_classes)
+                        bi_det_tp_num = np.zeros(num_classes)
+                        bi_det_fp_num = np.zeros(num_classes)
 
-                    # else:
-                    #     (
-                    #         bi_det_gt_num,
-                    #         bi_det_pred_num,
-                    #         bi_det_tp_num,
-                    #         bi_det_fp_num,
-                    #     ) = evaluate(self.cfgs, bi_det_preds, bi_det_anns)
+                    else:
+                        (
+                            bi_det_gt_num,
+                            bi_det_pred_num,
+                            bi_det_tp_num,
+                            bi_det_fp_num,
+                        ) = evaluate(self.cfgs, bi_det_preds, bi_det_anns)
 
-                    # det_gt_nums_tot += bi_det_gt_num
-                    # det_tp_nums_tot += bi_det_tp_num
-                    # det_pred_nums_tot += bi_det_pred_num
-                    # det_fp_nums_tot += bi_det_fp_num
+                    det_gt_nums_tot += bi_det_gt_num
+                    det_tp_nums_tot += bi_det_tp_num
+                    det_pred_nums_tot += bi_det_pred_num
+                    det_fp_nums_tot += bi_det_fp_num
 
                     # Save_png
                     if (self.cfgs["run"] == "val") and self.cfgs_val["save_png"]:
@@ -275,32 +275,32 @@ class Validator(object):
 
         coco_evaluation = self.vineval.evaluate(self.pred_dict)
 
-        # det_pc = det_tp_nums_tot / (det_pred_nums_tot + 1e-5)
-        # det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)
-        # det_fppi = det_fp_nums_tot / (nums_tot + 1e-5)
+        det_pc = det_tp_nums_tot / (det_pred_nums_tot + 1e-5)
+        det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)
+        det_fppi = det_fp_nums_tot / (nums_tot + 1e-5)
 
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
             "dloss": (dlosses_tot / (nums_tot + 1e-5)),
             "closs": (closses_tot / (nums_tot + 1e-5)),
-            # "det_prec": det_pc,
-            # "det_recl": det_rc,
-            # "det_fppi": det_fppi,
-            # "det_f1": 2 * det_pc * det_rc / (det_pc + det_rc + 1e-5),
+            "det_prec": det_pc,
+            "det_recl": det_rc,
+            "det_fppi": det_fppi,
+            "det_f1": 2 * det_pc * det_rc / (det_pc + det_rc + 1e-5),
             "coco": coco_evaluation.stats[0],
         }
 
-        # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-        #     cls_gt_tot = np.array(cls_gt_tot)
-        #     cls_pred_tot = np.array(cls_pred_tot)
-        #     tn, fp, fn, tp = confusion_matrix(cls_gt_tot, cls_pred_tot > 0.5).ravel()
-        #     cls_sens = tp / (tp + fn + 1e-5)
-        #     cls_spec = tn / (tn + fp + 1e-5)
-        #     cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
+        if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+            cls_gt_tot = np.array(cls_gt_tot)
+            cls_pred_tot = np.array(cls_pred_tot)
+            tn, fp, fn, tp = confusion_matrix(cls_gt_tot, cls_pred_tot > 0.5).ravel()
+            cls_sens = tp / (tp + fn + 1e-5)
+            cls_spec = tn / (tn + fp + 1e-5)
+            cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
 
-        #     val_record["cls_auc"] = cls_auc
-        #     val_record["cls_sens"] = cls_sens
-        #     val_record["cls_spec"] = cls_spec
+            val_record["cls_auc"] = cls_auc
+            val_record["cls_sens"] = cls_sens
+            val_record["cls_spec"] = cls_spec
 
         if self.cfgs["run"] == "val":
             pprint.pprint(val_record)

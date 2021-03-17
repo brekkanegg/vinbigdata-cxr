@@ -13,7 +13,6 @@ from utils import misc
 import inputs
 import opts
 
-from metrics.metrics import evaluate
 from metrics.cocoeval import VinBigDataEval
 import pprint
 
@@ -54,15 +53,15 @@ class Validator(object):
         self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
         self.tb_writer = utils.get_writer(self.cfgs)
 
-        # import models
+        import models
 
-        if self.cfgs["meta"]["model"]["old"]:
-            from models.efficientdet.model_outdated import EfficientDet
-        else:
-            from models.efficientdet.model import EfficientDet
+        # if self.cfgs["meta"]["model"]["old"]:
+        #     from models.efficientdet.model_outdated import EfficientDet
+        # else:
+        # from models.efficientdet.model import EfficientDet
+        # model = EfficientDet(self.cfgs, pretrained=False)
 
-        model = EfficientDet(self.cfgs, pretrained=False)
-        # model = models.get_model(self.cfgs, pretrained=False)
+        model = models.get_model(self.cfgs, pretrained=False)
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         model = model.to(self.device)
 
@@ -138,9 +137,8 @@ class Validator(object):
     def do_validate(self, model=None):
 
         if self.gt_dict is None:
-            if not self.cfgs["memo"] == "dryrun":
-                self.gt_dict = self.get_gt_dict()
-                self.vineval = VinBigDataEval(self.gt_dict)
+            self.gt_dict = self.get_gt_dict()
+            self.vineval = VinBigDataEval(self.gt_dict)
 
         self.pred_dict = {}
 
@@ -151,12 +149,12 @@ class Validator(object):
                 self.model = self.load_model()
 
         ####### Init val result
-        num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
+        # num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
 
-        det_gt_nums_tot = np.zeros(num_classes)
-        det_tp_nums_tot = np.zeros(num_classes)
-        det_fp_nums_tot = np.zeros(num_classes)
-        det_pred_nums_tot = np.zeros(num_classes)
+        # det_gt_nums_tot = np.zeros(num_classes)
+        # det_tp_nums_tot = np.zeros(num_classes)
+        # det_fp_nums_tot = np.zeros(num_classes)
+        # det_pred_nums_tot = np.zeros(num_classes)
         nums_tot = 0
         losses_tot = 0
         dlosses_tot = 0
@@ -203,14 +201,14 @@ class Validator(object):
                         bi_det_preds = bi_det_preds.detach().cpu().numpy()
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
 
-                    if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-                        bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
-                        if self.cfgs_val["use_classifier"]:
-                            if bi_cls_pred < self.cfgs_val["cls_th"]:
-                                bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+                    # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
+                    # if self.cfgs_val["use_classifier"]:
+                    if bi_cls_pred < self.cfgs_val["cls_th"]:
+                        bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
-                        cls_pred_tot.append(bi_cls_pred)
-                        cls_gt_tot.append(int(len(bi_det_anns) > 0))
+                    cls_pred_tot.append(bi_cls_pred)
+                    cls_gt_tot.append(int(len(bi_det_anns) > 0))
 
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 
@@ -218,29 +216,29 @@ class Validator(object):
                         # This is dummy bbox
                         bi_det_anns = np.array([[0, 0, 1, 1, 14]])
 
-                    # evaluation
-                    if (
-                        np.array_equal(bi_det_preds, np.array([[0, 0, 1, 1, 14, 1]]))
-                    ) and np.array_equal(bi_det_anns, np.array([[0, 0, 1, 1, 14]])):
+                    # # evaluation
+                    # if (
+                    #     np.array_equal(bi_det_preds, np.array([[0, 0, 1, 1, 14, 1]]))
+                    # ) and np.array_equal(bi_det_anns, np.array([[0, 0, 1, 1, 14]])):
 
-                        num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
-                        bi_det_gt_num = np.zeros(num_classes)
-                        bi_det_pred_num = np.zeros(num_classes)
-                        bi_det_tp_num = np.zeros(num_classes)
-                        bi_det_fp_num = np.zeros(num_classes)
+                    #     num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
+                    #     bi_det_gt_num = np.zeros(num_classes)
+                    #     bi_det_pred_num = np.zeros(num_classes)
+                    #     bi_det_tp_num = np.zeros(num_classes)
+                    #     bi_det_fp_num = np.zeros(num_classes)
 
-                    else:
-                        (
-                            bi_det_gt_num,
-                            bi_det_pred_num,
-                            bi_det_tp_num,
-                            bi_det_fp_num,
-                        ) = evaluate(self.cfgs, bi_det_preds, bi_det_anns)
+                    # else:
+                    #     (
+                    #         bi_det_gt_num,
+                    #         bi_det_pred_num,
+                    #         bi_det_tp_num,
+                    #         bi_det_fp_num,
+                    #     ) = evaluate(self.cfgs, bi_det_preds, bi_det_anns)
 
-                    det_gt_nums_tot += bi_det_gt_num
-                    det_tp_nums_tot += bi_det_tp_num
-                    det_pred_nums_tot += bi_det_pred_num
-                    det_fp_nums_tot += bi_det_fp_num
+                    # det_gt_nums_tot += bi_det_gt_num
+                    # det_tp_nums_tot += bi_det_tp_num
+                    # det_pred_nums_tot += bi_det_pred_num
+                    # det_fp_nums_tot += bi_det_fp_num
 
                     # Save_png
                     if (self.cfgs["run"] == "val") and self.cfgs_val["save_png"]:
@@ -255,54 +253,61 @@ class Validator(object):
                         )
 
             # For Visualization in TB - abnormal
-            vizlist = np.random.permutation(list(range(len(data["fp"]))))
-            for viz_bi in vizlist:
-                if data["bbox"][viz_bi, 0, -1] != -1:
-                    break
+            if self.cfgs["run"] == "train":
+                vizlist = np.random.permutation(list(range(len(data["fp"]))))
+                for viz_bi in vizlist:
+                    if data["bbox"][viz_bi, 0, -1] != -1:
+                        break
 
-            det_preds_viz = logits["preds"][viz_bi].detach().cpu().numpy()
-            if len(det_preds_viz) == 0:  # No pred bbox
-                det_preds_viz = np.ones((1, 6)) * -1
+                det_preds_viz = logits["preds"][viz_bi].detach().cpu().numpy()
+                if len(det_preds_viz) == 0:  # No pred bbox
+                    det_preds_viz = np.ones((1, 6)) * -1
 
-            det_anns_viz = data["bbox"][viz_bi].detach().cpu().numpy()
+                det_anns_viz = data["bbox"][viz_bi].detach().cpu().numpy()
 
-            val_viz = {
-                "fp": data["fp"][viz_bi],
-                "img": data["img"][viz_bi].numpy(),
-                "pred": det_preds_viz,
-                "ann": det_anns_viz,
-            }
+                val_viz = {
+                    "fp": data["fp"][viz_bi],
+                    "img": data["img"][viz_bi].numpy(),
+                    "pred": det_preds_viz,
+                    "ann": det_anns_viz,
+                }
 
-        coco_evaluation = self.vineval.evaluate(self.pred_dict)
+        # FIXME: each AP
+        # debug:
+        if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
+            self.vineval.image_ids = sorted(self.pred_dict.keys())
 
-        det_pc = det_tp_nums_tot / (det_pred_nums_tot + 1e-5)
-        det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)
-        det_fppi = det_fp_nums_tot / (nums_tot + 1e-5)
+        mAP, APs = self.vineval.evaluate(self.pred_dict)
+
+        # det_pc = det_tp_nums_tot / (det_pred_nums_tot + 1e-5)
+        # det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)
+        # det_fppi = det_fp_nums_tot / (nums_tot + 1e-5)
 
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
             "dloss": (dlosses_tot / (nums_tot + 1e-5)),
             "closs": (closses_tot / (nums_tot + 1e-5)),
-            "det_prec": det_pc,
-            "det_recl": det_rc,
-            "det_fppi": det_fppi,
-            "det_f1": 2 * det_pc * det_rc / (det_pc + det_rc + 1e-5),
-            "coco": coco_evaluation.stats[0],
+            # "det_prec": det_pc,
+            # "det_recl": det_rc,
+            # "det_fppi": det_fppi,
+            # "det_f1": 2 * det_pc * det_rc / (det_pc + det_rc + 1e-5),
+            "mAP": mAP,
+            "APs": APs,
         }
 
-        if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-            cls_gt_tot = np.array(cls_gt_tot)
-            cls_pred_tot = np.array(cls_pred_tot)
-            tn, fp, fn, tp = confusion_matrix(cls_gt_tot, cls_pred_tot > 0.5).ravel()
-            cls_sens = tp / (tp + fn + 1e-5)
-            cls_spec = tn / (tn + fp + 1e-5)
-            cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
+        # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+        cls_gt_tot = np.array(cls_gt_tot)
+        cls_pred_tot = np.array(cls_pred_tot)
+        tn, fp, fn, tp = confusion_matrix(cls_gt_tot, cls_pred_tot > 0.5).ravel()
+        cls_sens = tp / (tp + fn + 1e-5)
+        cls_spec = tn / (tn + fp + 1e-5)
+        cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
 
-            val_record["cls_auc"] = cls_auc
-            val_record["cls_sens"] = cls_sens
-            val_record["cls_spec"] = cls_spec
+        val_record["cls_auc"] = cls_auc
+        val_record["cls_sens"] = cls_sens
+        val_record["cls_spec"] = cls_spec
 
         if self.cfgs["run"] == "val":
             pprint.pprint(val_record)
-
-        return val_record, val_viz
+        elif self.cfgs["run"] == "train":
+            return val_record, val_viz

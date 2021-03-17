@@ -28,6 +28,7 @@ inputs:
   nms_th: 0.5
   abnormal_only: False
 train:
+  posneg_ratio: Null
   load_ckpt: Null
   resume_train: False
   max_epoch: 100
@@ -37,7 +38,7 @@ train:
 val:
   ignore_epoch: 5
   val_interval: 1
-  best: coco
+  best: mAP
   use_classifier: True
   cls_th: 0.5   # use classifier case
   save_png: False

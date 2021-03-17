@@ -86,7 +86,7 @@ class Trainer(object):
 
         ####### Setup Train
         self.epoch, self.iter, self.resume_epoch = 0, 0, 0
-        self.tot_val_record = {"best": {"loss": np.inf, "coco": -1}}
+        self.tot_val_record = {"best": {"loss": np.inf, "mAP": -1}}
 
         if self.cfgs["meta"]["train"]["resume_train"]:
             with open(
@@ -145,6 +145,10 @@ class Trainer(object):
         losses_tot = 0
         dlosses_tot = 0
         closses_tot = 0
+
+        # Shuffle
+        # TODO: normal - abnormal 1:1
+        self.train_loader.dataset.pids = random.shuffle(self.train_loader.dataset.pids)
 
         for i, data in enumerate(self.train_loader):
 
@@ -266,18 +270,22 @@ class Trainer(object):
             )
             self.txt_logger.write("\n")
 
-            for k in ["det_recl", "det_prec", "det_fppi", "det_f1"]:
-                self.txt_logger.write(f"{k}: ")
-                for v in val_record[k]:
-                    self.txt_logger.write(f"{v:.2f} ")
-                self.txt_logger.write("\n")
+            for v in val_record["APs"]:
+                self.txt_logger.write(f"{v:.2f} ")
+            self.txt_logger.write("\n")
+
+            # for k in ["det_recl", "det_prec", "det_fppi", "det_f1"]:
+            #     self.txt_logger.write(f"{k}: ")
+            #     for v in val_record[k]:
+            #         self.txt_logger.write(f"{v:.2f} ")
+            #     self.txt_logger.write("\n")
 
             if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
                 for k in ["cls_auc", "cls_sens", "cls_spec"]:
                     self.txt_logger.write(f"{k}: {val_record[k]:.2f}")
                     self.txt_logger.write("\n")
 
-            self.txt_logger.write(f"coco: {val_record['coco']:.2f}")
+            self.txt_logger.write(f"mAP: {val_record['mAP']:.2f}")
             self.txt_logger.write("\n")
             self.txt_logger.write(f"best epoch: {vbest_epoch}")
             self.txt_logger.write("\n", txt_write=True)
@@ -293,10 +301,10 @@ class Trainer(object):
             )
 
             self.tb_writer.write_scalars(
-                {"coco": {"coco": val_record["coco"]}}, self.epoch
+                {"mAP": {"mAP": val_record["mAP"]}}, self.epoch
             )
 
-            # self.tb_writer.add_scalar("coco", val_record["coco"], self.epoch)
+            # self.tb_writer.add_scalar("mAP", val_record["mAP"], self.epoch)
             metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
             self.tb_writer.write_scalars(
                 {

@@ -41,13 +41,15 @@ class Testor(object):
     def load_model(self, load_dir, load_epoch=None):
         # self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
 
-        # import models
-        if self.cfgs["meta"]["model"]["old"]:
-            from models.efficientdet.model_outdated import EfficientDet
-        else:
-            from models.efficientdet.model import EfficientDet
+        import models
 
-        model = EfficientDet(self.cfgs)
+        # if self.cfgs["meta"]["model"]["old"]:
+        #     from models.efficientdet.model_outdated import EfficientDet
+        # else:
+        #     from models.efficientdet.model import EfficientDet
+
+        # model = EfficientDet(self.cfgs)
+        model = models.get_model(self.cfgs, pretrained=False)
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         model = model.to(self.device)
 

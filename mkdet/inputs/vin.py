@@ -57,13 +57,17 @@ class VIN(Dataset):
         if self.mode != "test":
             with open(self.data_dir + "/train_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
-
             self.pids = self.get_train_pids()
+            if self.mode == "train":
+                if self.cfgs["meta"]["train"]["posneg_ratio"] == 1:
+                    self.abnormal_pids, self.normal_pids = self.split_abnormal(
+                        self.pids
+                    )
+
             self.nms = getattr(nms, self.cfgs["meta"]["inputs"]["nms"])
         else:
             with open(self.data_dir + "/test_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
-
             self.pids = list(self.meta_dict.keys())
 
     def get_train_pids(self):
@@ -107,8 +111,6 @@ class VIN(Dataset):
                 val_index_temp[i] = True
             val_index = is_abnormal * val_index_temp
 
-        #     break21
-
         if self.mode == "train":
             pids = xs[train_index]
         elif self.mode == "val":
@@ -118,9 +120,26 @@ class VIN(Dataset):
 
         return pids
 
+    def split_abnormal_pids(self, pids):
+        is_abnormal = np.array([False] * len(pids))
+        for idx, x in enumerate(pids):
+            v = np.array(self.meta_dict[x]["bbox"])
+            v = v[v[:, 2] != "14"]
+            if len(v) > 0:
+                is_abnormal[idx] = True
+
+        abnormal_pids = pids[is_abnormal]
+        normal_pids = pids[~is_abnormal]
+
+        return abnormal_pids, normal_pids
+
     def __len__(self):
-        if self.cfgs["meta"]["train"]["samples_per_epoch"] is None:
+        if (self.mode == "train") and (self.cfgs["meta"]["train"]["posneg_ratio"] == 1):
+            samples_per_epoch = min(len(self.abnormal_ids), len(self.normal_ids))
+
+        elif self.cfgs["meta"]["train"]["samples_per_epoch"] is None:
             samples_per_epoch = len(self.pids)
+
         else:
             samples_per_epoch = min(
                 self.cfgs["meta"]["train"]["samples_per_epoch"], len(self.pids)
@@ -133,6 +152,11 @@ class VIN(Dataset):
         """
 
         pid = self.pids[index]
+        if (self.mode == "train") and (self.cfgs["meta"]["train"]["posneg_ratio"] == 1):
+            pass
+        else:
+            pid = self.pids[index]
+
         ims = self.cfgs["meta"]["inputs"]["image_size"]
 
         if self.cfgs["run"] != "test":
