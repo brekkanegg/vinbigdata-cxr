@@ -2,6 +2,7 @@
 meta: EffDet
 model: 
   name: tf_efficientnet_b4_ns
+  old: False
   feat_start_layer: 1
 opts:
   optimizer: adamw #adamw
@@ -16,7 +17,7 @@ loss:
   pos_th: 0.4
   neg_th: 0.2
 inputs: 
-  image_size: 1024
+  image_size: 768
   label: vin
   num_classes: 14
   augment: train_multi_augment12

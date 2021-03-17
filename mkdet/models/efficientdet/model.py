@@ -1,6 +1,7 @@
 """
 based on https://github.com/tristandb/EfficientDet-PyTorch    - bifpn
 and https://github.com/toandaominh1997/EfficientDet.Pytorch   - retinahead
+and https://github.com/rwightman/pytorch-image-models         - backbone
 """
 import math
 import torch

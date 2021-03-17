@@ -53,11 +53,15 @@ class Validator(object):
         self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
         self.tb_writer = utils.get_writer(self.cfgs)
 
-        import models
+        # import models
 
-        # from models.efficientdet.model import EfficientDet
+        if self.cfgs["meta"]["model"]["old"]:
+            from models.efficientdet.model_outdated import EfficientDet
+        else:
+            from models.efficientdet.model import EfficientDet
 
-        model = models.get_model(self.cfgs, pretrained=False)
+        model = EfficientDet(self.cfgs, pretrained=False)
+        # model = models.get_model(self.cfgs, pretrained=False)
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
         model = model.to(self.device)
 

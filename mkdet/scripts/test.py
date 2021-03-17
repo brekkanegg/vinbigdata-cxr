@@ -42,9 +42,10 @@ class Testor(object):
         # self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
 
         # import models
-        from models.efficientdet.model import EfficientDet
-
-        # from models.efficientdet.model_outdated import EfficientDet
+        if self.cfgs["meta"]["model"]["old"]:
+            from models.efficientdet.model_outdated import EfficientDet
+        else:
+            from models.efficientdet.model import EfficientDet
 
         model = EfficientDet(self.cfgs)
         self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))

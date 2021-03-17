@@ -1,20 +1,10 @@
-# hydra:
-#   job_logging:
-#     formatters:
-#       colorlog:
-#         format: "[%(blue)s%(name)s%(reset)s][%(log_color)s%(levelname)s%(reset)s] - %(message)s"
-#   run:
-#     dir: "${save_dir}/fold-${fold}_memo-${memo}"
-
 defaults:
-  - meta: effdet
-  # - hydra/job_logging: colorlog
-  # - hydra/hydra_logging: colorlog
+  - meta: train
 
 gpu: [1]
-run: train
-determ: False
-batch_size: 4
+run: ${defaults.meta}
+# determ: False
+batch_size: 6
 num_workers: 4
 use_amp: True
 local_rank: 0
@@ -24,3 +14,4 @@ data_dir: /data2/minki/kaggle/vinbigdata-cxr/png_1024l
 fold: 1
 do_profiling: False
 memo: Null
+

@@ -30,7 +30,7 @@ EfficientNet_CFG = {
 
 
 class EfficientDet(nn.Module):
-    def __init__(self, cfgs, feature_net="b4"):
+    def __init__(self, cfgs, feature_net="b4", pretrained=False):
 
         super(EfficientDet, self).__init__()
 
