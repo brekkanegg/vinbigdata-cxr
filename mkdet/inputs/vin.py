@@ -16,6 +16,24 @@ from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
 from . import nms
 
+FINDINGS = [
+    "Aortic enlargement",  ### 0 614
+    "Atelectasis",  ### 1 37
+    "Calcification",  ### 2 90
+    "Cardiomegaly",  ### 3 460
+    "Consolidation",  ### 4 71
+    "ILD",  ### 5 77
+    "Infiltration",  ### 6 123
+    "Lung Opacity",  ### 7 264
+    "Nodule/Mass",  ### 8 165
+    "Other lesion",  ### 9 227
+    "Pleural effusion",  ### 10 206
+    "Pleural thickening",  ### 11 396
+    "Pneumothorax",  ### 12 20
+    "Pulmonary fibrosis",  ### 13 323
+    "No finding",  ### 14 2121
+]
+
 
 def collater(data):
 
@@ -143,7 +161,7 @@ class VIN(Dataset):
         elif (self.mode == "train") and (
             self.cfgs["meta"]["train"]["posneg_ratio"] == 1
         ):
-            samples_per_epoch = min(len(self.abnormal_pids), len(self.normal_pids))
+            samples_per_epoch = min(len(self.abnormal_pids), len(self.normal_pids)) * 2
 
         elif self.cfgs["meta"]["train"]["samples_per_epoch"] is None:
             samples_per_epoch = len(self.pids)

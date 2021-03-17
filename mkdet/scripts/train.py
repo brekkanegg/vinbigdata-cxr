@@ -274,6 +274,13 @@ class Trainer(object):
             )
             self.txt_logger.write("\n")
 
+            for k in ["cls_auc", "cls_sens", "cls_spec"]:
+                self.txt_logger.write(f"{k}: {val_record[k]:.4f}  ")
+            self.txt_logger.write("\n")
+
+            for f in inputs.FINDINGS:
+                self.txt_logger.write(f"{f[:4]} ")
+            self.txt_logger.write("\n")
             for v in val_record["APs"]:
                 self.txt_logger.write(f"{v:.2f} ")
             self.txt_logger.write("\n")
@@ -284,12 +291,9 @@ class Trainer(object):
             #         self.txt_logger.write(f"{v:.2f} ")
             #     self.txt_logger.write("\n")
 
-            if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-                for k in ["cls_auc", "cls_sens", "cls_spec"]:
-                    self.txt_logger.write(f"{k}: {val_record[k]:.2f}")
-                    self.txt_logger.write("\n")
+            # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
 
-            self.txt_logger.write(f"mAP: {val_record['mAP']:.2f}")
+            self.txt_logger.write(f"mAP: {val_record['mAP']:.4f}")
             self.txt_logger.write("\n")
             self.txt_logger.write(f"best epoch: {vbest_epoch}")
             self.txt_logger.write("\n", txt_write=True)
@@ -309,16 +313,16 @@ class Trainer(object):
             )
 
             # self.tb_writer.add_scalar("mAP", val_record["mAP"], self.epoch)
-            metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
-            self.tb_writer.write_scalars(
-                {
-                    "metrics": {
-                        "{}".format(key): val_record[key][:-1].mean()
-                        for key in metric_keys
-                    }
-                },
-                self.epoch,
-            )
+            # metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
+            # self.tb_writer.write_scalars(
+            #     {
+            #         "metrics": {
+            #             "{}".format(key): val_record[key][:-1].mean()
+            #             for key in metric_keys
+            #         }
+            #     },
+            #     self.epoch,
+            # )
 
             if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
                 metric_keys = ["cls_auc", "cls_sens", "cls_spec"]
