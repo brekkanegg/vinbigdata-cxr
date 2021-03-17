@@ -31,10 +31,12 @@ class Writer(SummaryWriter):
         for k1, v1 in scalars_dict.items():
             self.add_scalars(k1, {k2: v2 for k2, v2 in v1.items()}, iteration)
 
-    def write_images(self, fp, img, pred, gt, iteration=None, mode="train", save=False):
+    def write_images(
+        self, fp, img, pred, gt, iteration=None, mode="train", save=False, th=0.3
+    ):
         # NOTE:  pred, gt shape: [num_class, size, size]
 
-        th = self.cfgs["meta"]["test"]["prob_th"]
+        # th = self.cfgs["meta"]["test"]["prob_th"]
 
         gt_bbox, gt_class = gt[:, :4], gt[:, 4]
 

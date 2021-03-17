@@ -61,7 +61,7 @@ class VIN(Dataset):
 
             if self.mode == "train":
                 if self.cfgs["meta"]["train"]["posneg_ratio"] == 1:
-                    self.abnormal_pids, self.normal_pids = self.split_abnormal(
+                    self.abnormal_pids, self.normal_pids = self.split_abnormal_pids(
                         self.pids
                     )
 
@@ -129,22 +129,25 @@ class VIN(Dataset):
             if len(v) > 0:
                 is_abnormal[idx] = True
 
-        abnormal_pids = pids[is_abnormal]
-        normal_pids = pids[~is_abnormal]
+        abnormal_pids = np.array(pids)[is_abnormal].tolist()
+        normal_pids = np.array(pids)[~is_abnormal].tolist()
 
         return abnormal_pids, normal_pids
 
     def __len__(self):
-        if (self.mode == "train") and (self.cfgs["meta"]["train"]["posneg_ratio"] == 1):
-            samples_per_epoch = min(len(self.abnormal_ids), len(self.normal_ids))
+        if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
+            samples_per_epoch = min(
+                self.cfgs["meta"]["train"]["samples_per_epoch"], len(self.pids)
+            )
+
+        elif (self.mode == "train") and (
+            self.cfgs["meta"]["train"]["posneg_ratio"] == 1
+        ):
+            samples_per_epoch = min(len(self.abnormal_pids), len(self.normal_pids))
 
         elif self.cfgs["meta"]["train"]["samples_per_epoch"] is None:
             samples_per_epoch = len(self.pids)
 
-        else:
-            samples_per_epoch = min(
-                self.cfgs["meta"]["train"]["samples_per_epoch"], len(self.pids)
-            )
         return samples_per_epoch
 
     def __getitem__(self, index):
