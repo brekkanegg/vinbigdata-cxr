@@ -18,7 +18,7 @@ loss:
 inputs: 
   image_size: 1024
   label: vin
-  num_classes: 15
+  num_classes: 14
   augment: train_multi_augment12
   label_smooth: 0.1
   nms: wbf

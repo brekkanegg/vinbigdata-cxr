@@ -1,6 +1,6 @@
 """
-based on https://github.com/tristandb/EfficientDet-PyTorch
-and https://github.com/toandaominh1997/EfficientDet.Pytorch
+based on https://github.com/tristandb/EfficientDet-PyTorch    - bifpn
+and https://github.com/toandaominh1997/EfficientDet.Pytorch   - retinahead
 """
 import math
 import torch
@@ -65,8 +65,6 @@ class EfficientDet(nn.Module):
         if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
             self.aux_classifier = classifier2(fpn_channels[-1], self.W_bifpn)
 
-        self._init_weights()
-
         pyramid_levels = [3, 4, 5, 6, 7]
         if self.f0 == 0:
             pyramid_levels = [2, 3, 4, 5, 6]
@@ -75,12 +73,14 @@ class EfficientDet(nn.Module):
         self.regressBoxes = BBoxTransform()
         self.clipBoxes = ClipBoxes()
 
+        self._init_weights()
+
         # NOTE: RetinaHead initialize 따로
 
         self.bbox_head = RetinaHead(
             cfgs=self.cfgs,
             in_channels=self.W_bifpn,
-            stacked_convs=self.L_head,
+            # stacked_convs=self.L_head,
         )
 
         self.bbox_head.init_weights()

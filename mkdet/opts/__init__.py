@@ -54,6 +54,7 @@ def get_scheduler(cfgs, optimizer):
 
 def calc_loss(cfgs, device, data, logits):
     cfgs_loss = cfgs["meta"]["loss"]
+    num_classes = cfgs["meta"]["inputs"]["num_classes"]
 
     criterion = FocalLoss(cfgs)
     loss_det = criterion(logits, data["bbox"].to(device))

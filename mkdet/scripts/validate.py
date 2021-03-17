@@ -197,10 +197,6 @@ class Validator(object):
                         bi_det_preds = bi_det_preds.detach().cpu().numpy()
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
 
-                    # GT
-                    bi_det_anns = det_anns[bi]
-                    bi_det_anns = bi_det_anns[bi_det_anns[:, -1] != -1]
-
                     if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
                         bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
                         if self.cfgs_val["use_classifier"]:
@@ -213,13 +209,20 @@ class Validator(object):
 
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 
+                    # GT
+                    bi_det_anns = det_anns[bi]
+                    bi_det_anns = bi_det_anns[bi_det_anns[:, -1] != -1]
+
                     if len(bi_det_anns) == 0:  # No pred bbox
                         # This is dummy bbox
                         bi_det_anns = np.array([[0, 0, 1, 1, 14]])
 
                     # evaluation
-                    if (len(bi_det_preds) == 0) and (len(bi_det_anns) == 0):
-                        num_classes = self.imscfgs["meta"]["inputs"]["num_classes"]
+                    if (
+                        np.array_equal(bi_det_preds, np.array([[0, 0, 1, 1, 14, 1]]))
+                    ) and np.array_equal(bi_det_anns, np.array([[0, 0, 1, 1, 14]])):
+
+                        num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
                         bi_det_gt_num = np.zeros(num_classes)
                         bi_det_pred_num = np.zeros(num_classes)
                         bi_det_tp_num = np.zeros(num_classes)

@@ -83,9 +83,10 @@ def wbf(bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.4, image_size=None):
     scores_list = []
 
     # bboxes_num = len(bboxes_rad)
-    # bboxes coord sould be 0..1
+
     for rid in list(set(bboxes_rad)):
         rid_bbox_index = np.array(bboxes_rad) == rid
+        # bboxes coord sould be 0..1
         bboxes_list.append(
             (np.array(bboxes_coord)[rid_bbox_index] / image_size).tolist()
         )

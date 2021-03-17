@@ -49,6 +49,7 @@ class FocalLoss(nn.Module):
         pos_th = self.cfgs["meta"]["loss"]["pos_th"]  # 0.25
         neg_th = self.cfgs["meta"]["loss"]["neg_th"]  # 0.05
         ls = self.cfgs["meta"]["inputs"]["label_smooth"]  # 0.05
+        num_classes = self.cfgs["meta"]["inputs"]["num_classes"]  # 0.05
 
         batch_size = classifications.shape[0]
         classification_losses = []
@@ -76,6 +77,7 @@ class FocalLoss(nn.Module):
                 continue
 
             classification = torch.clamp(classification, 1e-4, 1.0 - 1e-4)
+            # classification = torch.clamp(classification, 0.1 / num_classes, 1.0 - 0.1)
 
             # num_anchors x num_annotations
             IoU = calc_iou(anchors[0, :, :], bbox_annotation[:, :4])
@@ -86,7 +88,7 @@ class FocalLoss(nn.Module):
             targets = torch.ones(classification.shape) * -1
             targets = targets.cuda()
 
-            targets[torch.lt(IoU_max, neg_th), :] = ls  # 0
+            targets[torch.lt(IoU_max, neg_th), :] = 0
 
             positive_indices = torch.ge(IoU_max, pos_th)
 
@@ -95,7 +97,7 @@ class FocalLoss(nn.Module):
             assigned_annotations = bbox_annotation[IoU_argmax, :]
 
             # FIXME: Label Smoothing for
-            targets[positive_indices, :] = 0
+            targets[positive_indices, :] = ls / num_classes
             targets[
                 positive_indices, assigned_annotations[positive_indices, 4].long()
             ] = (1 - ls)
