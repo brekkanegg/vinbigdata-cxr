@@ -58,6 +58,7 @@ class VIN(Dataset):
             with open(self.data_dir + "/train_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
             self.pids = self.get_train_pids()
+
             if self.mode == "train":
                 if self.cfgs["meta"]["train"]["posneg_ratio"] == 1:
                     self.abnormal_pids, self.normal_pids = self.split_abnormal(
@@ -93,23 +94,23 @@ class VIN(Dataset):
             train_index, val_index = next(kfold_generator)
 
         # use only abnormal
-        if self.cfgs["meta"]["inputs"]["abnormal_only"]:
-            is_abnormal = np.array([False] * len(xs))
-            for idx, x in enumerate(xs):
-                v = np.array(self.meta_dict[x]["bbox"])
-                v = v[v[:, 2] != "14"]
-                if len(v) > 0:
-                    is_abnormal[idx] = True
+        # if self.cfgs["meta"]["inputs"]["abnormal_only"]:
+        #     is_abnormal = np.array([False] * len(xs))
+        #     for idx, x in enumerate(xs):
+        #         v = np.array(self.meta_dict[x]["bbox"])
+        #         v = v[v[:, 2] != "14"]
+        #         if len(v) > 0:
+        #             is_abnormal[idx] = True
 
-            train_index_temp = np.array([False] * len(xs))
-            for i in train_index:
-                train_index_temp[i] = True
-            train_index = is_abnormal * train_index_temp
+        #     train_index_temp = np.array([False] * len(xs))
+        #     for i in train_index:
+        #         train_index_temp[i] = True
+        #     train_index = is_abnormal * train_index_temp
 
-            val_index_temp = np.array([False] * len(xs))
-            for i in val_index:
-                val_index_temp[i] = True
-            val_index = is_abnormal * val_index_temp
+        #     val_index_temp = np.array([False] * len(xs))
+        #     for i in val_index:
+        #         val_index_temp[i] = True
+        #     val_index = is_abnormal * val_index_temp
 
         if self.mode == "train":
             pids = xs[train_index]
@@ -153,7 +154,10 @@ class VIN(Dataset):
 
         pid = self.pids[index]
         if (self.mode == "train") and (self.cfgs["meta"]["train"]["posneg_ratio"] == 1):
-            pass
+            if index % 2 == 0:
+                pid = self.abnormal_pids[index // 2]
+            else:
+                pid = self.normal_pids[index // 2 + 1]
         else:
             pid = self.pids[index]
 

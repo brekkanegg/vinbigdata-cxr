@@ -148,7 +148,11 @@ class Trainer(object):
 
         # Shuffle
         # TODO: normal - abnormal 1:1
-        self.train_loader.dataset.pids = random.shuffle(self.train_loader.dataset.pids)
+        if self.cfgs["meta"]["train"]["posneg_ratio"] == 1:
+            random.shuffle(self.train_loader.dataset.abnormal_pids)
+            random.shuffle(self.train_loader.dataset.normal_pids)
+        else:
+            random.shuffle(self.train_loader.dataset.pids)
 
         for i, data in enumerate(self.train_loader):
 
