@@ -195,6 +195,10 @@ class Validator(object):
                     bi_det_preds = logits["preds"][bi]  # .detach().cpu().numpy()
                     bi_det_preds = bi_det_preds[bi_det_preds[:, -1] != -1]
 
+                    # GT
+                    bi_det_anns = det_anns[bi]
+                    bi_det_anns = bi_det_anns[bi_det_anns[:, -1] != -1]
+
                     if len(bi_det_preds) == 0:  # No pred bbox
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
                     else:
@@ -208,14 +212,9 @@ class Validator(object):
                                 bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                         cls_pred_tot.append(bi_cls_pred)
-
                         cls_gt_tot.append(int(len(bi_det_anns) > 0))
 
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
-
-                    # GT
-                    bi_det_anns = det_anns[bi]
-                    bi_det_anns = bi_det_anns[bi_det_anns[:, -1] != -1]
 
                     if len(bi_det_anns) == 0:  # No pred bbox
                         # This is dummy bbox
