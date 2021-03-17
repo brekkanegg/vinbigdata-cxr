@@ -15,6 +15,7 @@ import opts
 
 from metrics.metrics import evaluate
 from metrics.cocoeval import VinBigDataEval
+import pprint
 
 
 class Validator(object):
@@ -31,7 +32,7 @@ class Validator(object):
         val_sampler = None
         self.val_loader = DataLoader(
             dataset=val_dataset,
-            batch_size=cfgs["batch_size"] * 4,
+            batch_size=cfgs["batch_size"],
             num_workers=cfgs["num_workers"],
             pin_memory=True,
             drop_last=False,
@@ -305,6 +306,6 @@ class Validator(object):
             val_record["cls_spec"] = cls_spec
 
         if self.cfgs["run"] == "val":
-            print(val_record)
+            pprint.pprint(val_record)
 
         return val_record, val_viz
