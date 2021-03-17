@@ -110,7 +110,7 @@ class EfficientDet(nn.Module):
         outputs_dict["anchors"] = anchors
 
         if mode != "train":
-            det_th = self.cfgs["meta"]["val"]["det_th"]
+            det_th = self.cfgs["meta"]["model"]["det_th"]
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, inputs)
             scores, scores_class = torch.max(classification, dim=2, keepdim=True)
@@ -136,7 +136,7 @@ class EfficientDet(nn.Module):
                 bi_anchors_nms_idx = nms(
                     bi_transformed_anchors,
                     bi_scores[:, 0],
-                    iou_threshold=self.cfgs["meta"]["val"]["nms_th"],
+                    iou_threshold=self.cfgs["meta"]["model"]["nms_th"],
                 )
                 bi_nms_scores, bi_nms_class = bi_classification[
                     bi_anchors_nms_idx, :

@@ -81,11 +81,11 @@ class Testor(object):
             print("Enter submit csv name")
             raise ()
         load_epoch = input("Test epoch: ")
-        reduce_size = input("Reduce bbox size (t/f): ")
-        if reduce_size == "t":
-            reduce_size = True
-        else:
-            reduce_size = False
+        # reduce_size = input("Reduce bbox size (t/f): ")
+        # if reduce_size == "t":
+        #     reduce_size = True
+        # else:
+        #     reduce_size = False
 
         # use_classifier = input("Use classifier (t/f): ")
         # if use_classifier == "f":
@@ -95,10 +95,10 @@ class Testor(object):
 
         print("\n\nCheck following: ")
         print("Image Size: ", self.cfgs["meta"]["inputs"]["image_size"])
-        print(
-            "Detection only - use abnormal only: ",
-            self.cfgs["meta"]["inputs"]["abnormal_only"],
-        )
+        # print(
+        #     "Detection only - use abnormal only: ",
+        #     self.cfgs["meta"]["inputs"]["abnormal_only"],
+        # )
         print(
             "Num Classes - include No Finding: ",
             self.cfgs["meta"]["inputs"]["num_classes"],
@@ -121,9 +121,9 @@ class Testor(object):
 
                     # Prediciton
                     bi_det_preds = logits["preds"][bi].detach().cpu().numpy()
-                    bi_det_preds = bi_det_preds[
-                        bi_det_preds[:, -1] >= self.cfgs_test["prob_th"]
-                    ]
+                    # bi_det_preds = bi_det_preds[
+                    #     bi_det_preds[:, -1] >= self.cfgs_test["prob_th"]
+                    # ]
 
                     if len(bi_det_preds) == 0:  # No pred bbox
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
@@ -136,17 +136,17 @@ class Testor(object):
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4])
 
                     # FIXME:
-                    if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-                        bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
+                    # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
 
-                        if bi_cls_pred < self.cfgs["meta"]["test"]["cls_th"]:
-                            bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+                    if bi_cls_pred < self.cfgs["meta"]["test"]["cls_th"]:
+                        bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     pred_string = ""
                     for det_i in bi_det_preds:
                         x0, y0, x1, y1, c, cf = det_i
-                        if reduce_size:
-                            (x0, y0, x1, y1) = reduce_bbox((x0, y0, x1, y1))
+                        # if reduce_size:
+                        #     (x0, y0, x1, y1) = reduce_bbox((x0, y0, x1, y1))
 
                         pred_string += (
                             f" {int(c)} {cf} {int(x0)} {int(y0)} {int(x1)} {int(y1)}"
