@@ -1,8 +1,8 @@
 defaults:
-  - meta: train
+  - meta: effdet
 
 gpu: [1]
-run: ${defaults.meta}
+run: train
 # determ: False
 batch_size: 6
 num_workers: 4
