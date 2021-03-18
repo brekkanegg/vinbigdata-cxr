@@ -27,7 +27,7 @@ inputs:
   nms: wbf
   nms_th: 0.5
   abnormal_only: False
-  windowing: cxr
+  window: cxr
 train:
   posneg_ratio: Null
   load_ckpt: Null
