@@ -10,7 +10,8 @@ from sklearn.metrics import confusion_matrix
 
 import utils
 from utils import misc
-import inputs
+from inputs import vin
+import models
 import opts
 
 from metrics.cocoeval import VinBigDataEval
@@ -25,22 +26,8 @@ class Validator(object):
         self.device = device
 
         ####### DATA
-        val_transforms = None  # FIXME:
-        val_dataset = inputs.get_dataset(self.cfgs, mode="val")
-
-        val_sampler = None
-        self.val_loader = DataLoader(
-            dataset=val_dataset,
-            batch_size=cfgs["batch_size"],
-            num_workers=cfgs["num_workers"],
-            pin_memory=True,
-            drop_last=False,
-            collate_fn=inputs.get_collater(),
-            sampler=val_sampler,
-        )
-
+        self.val_loader = vin.get_dataloader(self.cfgs, mode="val")
         self.meta_dict = self.val_loader.dataset.meta_dict
-        self.ims = self.cfgs["meta"]["inputs"]["image_size"]
 
         # Vin Eval
         self.nms = self.val_loader.dataset.nms
@@ -53,23 +40,15 @@ class Validator(object):
         self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
         self.tb_writer = utils.get_writer(self.cfgs)
 
-        import models
-
-        # if self.cfgs["meta"]["model"]["old"]:
-        #     from models.efficientdet.model_outdated import EfficientDet
-        # else:
-        # from models.efficientdet.model import EfficientDet
-        # model = EfficientDet(self.cfgs, pretrained=False)
-
         model = models.get_model(self.cfgs, pretrained=False)
-        self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
+        self.device = torch.device(f"cuda:{self.cfgs['local_rank']}")
         model = model.to(self.device)
 
         with open(os.path.join(self.cfgs["save_dir"], "tot_val_record.pkl"), "rb") as f:
             tot_val_record = pickle.load(f)
             resume_epoch = tot_val_record["best"]["epoch"]
             load_model_dir = os.path.join(
-                self.cfgs["save_dir"], "epoch_{}.pt".format(resume_epoch)
+                self.cfgs["save_dir"], f"epoch_{resume_epoch}.pt"
             )
             checkpoint = torch.load(load_model_dir)
             model.load_state_dict(checkpoint["model"], strict=True)

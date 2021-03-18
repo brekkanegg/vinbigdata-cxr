@@ -109,7 +109,7 @@ class MyCOCOeval(COCOeval):
             summarize = _summarizeDets
         elif iouType == "keypoints":
             summarize = _summarizeKps
-        
+
         self.stats = summarize()
 
 

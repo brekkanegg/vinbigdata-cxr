@@ -9,8 +9,9 @@ from torch.utils.data import DataLoader
 
 import utils
 from utils import misc
-import inputs
+from inputs import vin
 import pprint
+import models
 
 
 class Testor(object):
@@ -21,36 +22,16 @@ class Testor(object):
         self.device = device
 
         ####### DATA
-        test_transforms = None  # FIXME:
-        test_dataset = inputs.get_dataset(self.cfgs, mode="test")
-
-        test_sampler = None
-        self.test_loader = DataLoader(
-            dataset=test_dataset,
-            batch_size=cfgs["batch_size"],
-            num_workers=cfgs["num_workers"],
-            pin_memory=True,
-            drop_last=False,
-            collate_fn=inputs.get_collater("test"),
-            sampler=test_sampler,
-        )
+        self.test_loader = vin.get_dataloader(self.cfgs, mode="test")
 
         self.meta_dict = self.test_loader.dataset.meta_dict
-        self.ims = self.cfgs["meta"]["inputs"]["image_size"]
 
     def load_model(self, load_dir, load_epoch=None):
         # self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
 
-        import models
-
-        # if self.cfgs["meta"]["model"]["old"]:
-        #     from models.efficientdet.model_outdated import EfficientDet
-        # else:
-        #     from models.efficientdet.model import EfficientDet
-
         # model = EfficientDet(self.cfgs)
         model = models.get_model(self.cfgs, pretrained=False)
-        self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
+        self.device = torch.device(f"cuda:{self.cfgs['local_rank']}")
         model = model.to(self.device)
 
         ckpt_dir = f"/nfs3/minki/kaggle/vinbigdata-cxr/mkdet/ckpt/{load_dir}"
@@ -64,7 +45,7 @@ class Testor(object):
         else:
             best_epoch = load_epoch
 
-        load_model_dir = os.path.join(ckpt_dir, "epoch_{}.pt".format(best_epoch))
+        load_model_dir = os.path.join(ckpt_dir, f"epoch_{best_epoch}.pt")
 
         print("Load: ", load_model_dir)
         pprint.pprint(tot_val_record[str(best_epoch)])
@@ -110,6 +91,8 @@ class Testor(object):
         self.model = self.load_model(load_dir, load_epoch)
 
         submit_df = []
+        ims = self.cfgs["meta"]["inputs"]["image_size"]
+        pred_bbox_num = 0
 
         self.model.eval()  # batchnorm uses moving mean/variance instead of mini-batch mean/variance
         with torch.no_grad():
@@ -131,10 +114,11 @@ class Testor(object):
                         bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
 
                     else:
+
                         bi_dimy = self.meta_dict[bi_fp]["dim0"]
                         bi_dimx = self.meta_dict[bi_fp]["dim1"]
-                        bi_det_preds[:, [0, 2]] *= bi_dimx / self.ims
-                        bi_det_preds[:, [1, 3]] *= bi_dimy / self.ims
+                        bi_det_preds[:, [0, 2]] *= bi_dimx / ims
+                        bi_det_preds[:, [1, 3]] *= bi_dimy / ims
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4])
 
                     # FIXME:
@@ -153,6 +137,7 @@ class Testor(object):
                         pred_string += (
                             f" {int(c)} {cf} {int(x0)} {int(y0)} {int(x1)} {int(y1)}"
                         )
+                        pred_bbox_num += 1
 
                     pred_string = pred_string[1:]  # remove left blank
 

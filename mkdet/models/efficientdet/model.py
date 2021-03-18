@@ -36,24 +36,18 @@ class EfficientDet(nn.Module):
         super(EfficientDet, self).__init__()
 
         self.cfgs = cfgs
-        self.name = cfgs["meta"]["model"]["name"]  #  "tf_efficientnet_b4_ns"
+        self.name = cfgs["meta"]["model"]["name"]  #  "b4"
         self.efficientnet = timm.create_model(
-            self.name, features_only=True, pretrained=pretrained
+            f"tf_efficientnet_{self.name}_ns", features_only=True, pretrained=pretrained
         )
 
-        mname = self.name.split("_")[2]
+        # mname = self.name.split("_")[2]
 
-        self.W_bifpn = EfficientNet_CFG[mname][0]
-        self.D_bifpn = EfficientNet_CFG[mname][1]
-        self.L_head = EfficientNet_CFG[mname][2]
+        self.W_bifpn = EfficientNet_CFG[self.name][0]
+        self.D_bifpn = EfficientNet_CFG[self.name][1]
+        self.L_head = EfficientNet_CFG[self.name][2]
 
         self.f0 = cfgs["meta"]["model"]["feat_start_layer"]
-
-        # pytorch-image-models
-        # https://github.com/rwightman/pytorch-image-models#models
-        self.efficientnet = timm.create_model(
-            self.name, features_only=True, pretrained=pretrained
-        )
 
         dummy = self.efficientnet(torch.randn(2, 3, 256, 256))
         fpn_channels = [i.shape[1] for i in dummy]

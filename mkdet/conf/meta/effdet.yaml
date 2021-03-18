@@ -1,14 +1,14 @@
 # @package _group_
 meta: EffDet
 model: 
-  name: tf_efficientnet_b4_ns
+  name: b4
   old: False
   feat_start_layer: 1
   det_th: 0.1
   nms_th: 0.5
 opts:
   optimizer: adamw #adamw
-  learning_rate: 5e-4
+  learning_rate: 1e-3
   beta1: 0.9
   beta2: 0.999
   scheduler: cosineWR #cosineWR #Null
@@ -27,6 +27,7 @@ inputs:
   nms: wbf
   nms_th: 0.5
   abnormal_only: False
+  windowing: cxr
 train:
   posneg_ratio: Null
   load_ckpt: Null

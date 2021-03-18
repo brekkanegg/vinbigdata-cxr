@@ -13,8 +13,12 @@ from scipy import ndimage
 import time
 import pickle
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
+from torch.utils.data import DataLoader
 
+
+from . import augmentations
 from . import nms
+
 
 FINDINGS = [
     "Aortic enlargement",  ### 0 614
@@ -33,6 +37,35 @@ FINDINGS = [
     "Pulmonary fibrosis",  ### 13 323
     "No finding",  ### 14 2121
 ]
+
+
+def get_dataloader(cfgs, mode="train"):
+
+    if mode == "train":
+        transform = augmentations.train_multi_augment12
+        collate_fn = collater
+
+    elif mode == "val":
+        transform = None
+        collate_fn = collater
+
+    elif mode == "test":
+        transform = None
+        collate_fn = collater_test
+
+    _dataset = VIN(cfgs, transform=transform, mode=mode)
+
+    _loader = InfiniteDataLoader(
+        dataset=_dataset,
+        batch_size=cfgs["batch_size"],
+        num_workers=cfgs["num_workers"],
+        pin_memory=True,
+        drop_last=False,
+        collate_fn=collate_fn,
+        sampler=None,
+    )
+
+    return _loader
 
 
 def collater(data):
@@ -199,10 +232,11 @@ class VIN(Dataset):
                 interpolation = cv2.INTER_LANCZOS4
             img = cv2.resize(img, (ims, ims), interpolation=interpolation)
 
+        # FIXME: concat and windowing
+        img = np.concatenate((img[:, :, np.newaxis],) * 3, axis=2)
+
         img = self.windowing(img)
         img = img.astype(np.float32)
-
-        img = np.concatenate((img[:, :, np.newaxis],) * 3, axis=2)
 
         if self.cfgs["run"] == "test":
             data = {}
@@ -283,16 +317,58 @@ class VIN(Dataset):
         return data
 
     def windowing(self, img):
-        eps = 1e-6
-        center = img.mean()
-        if self.mode == "train":
-            width = img.std() * (random.random() + 3.5)
-        else:
-            width = img.std() * 4
-        low = center - width / 2
-        high = center + width / 2
-        img = (img - low) / (high - low + eps)
-        img[img < 0.0] = 0.0
-        img[img > 1.0] = 1.0
+        if self.cfgs["meta"]["inputs"]["window"] == "cxr":
+            eps = 1e-6
+            center = img.mean()
+            if self.mode == "train":
+                width = img.std() * (random.random() + 3.5)
+            else:
+                width = img.std() * 4
+            low = center - width / 2
+            high = center + width / 2
+            img = (img - low) / (high - low + eps)
+            img[img < 0.0] = 0.0
+            img[img > 1.0] = 1.0
+
+        elif self.cfgs["meta"]["inputs"]["window"] == "imagenet":
+
+            img = (img - img.min()) / img.max() - img.min()
+
+            stat_mean = (0.485, 0.456, 0.406)
+            stat_std = (0.229, 0.224, 0.225)
+
+            img = (img - stat_mean) / stat_std
 
         return img
+
+
+class InfiniteDataLoader(DataLoader):
+    """Dataloader that reuses workers
+    Uses same syntax as vanilla DataLoader
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        object.__setattr__(self, "batch_sampler", _RepeatSampler(self.batch_sampler))
+        self.iterator = super().__iter__()
+
+    def __len__(self):
+        return len(self.batch_sampler.sampler)
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield next(self.iterator)
+
+
+class _RepeatSampler(object):
+    """Sampler that repeats forever
+    Args:
+        sampler (Sampler)
+    """
+
+    def __init__(self, sampler):
+        self.sampler = sampler
+
+    def __iter__(self):
+        while True:
+            yield from iter(self.sampler)

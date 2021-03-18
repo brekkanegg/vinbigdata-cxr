@@ -23,7 +23,7 @@ from scripts.validate import Validator
 
 import utils
 from utils import misc
-import inputs
+from inputs import vin
 
 import models
 
@@ -44,32 +44,20 @@ class Trainer(object):
         self.txt_logger = utils.get_logger(self.cfgs)
 
         self.txt_logger.write("\n\n----train.py----")
-        self.txt_logger.write("\n{}".format(datetime.datetime.now()))
-        self.txt_logger.write("\n\nSave Directory: \n{}".format(self.cfgs["save_dir"]))
-        self.txt_logger.write("\n\nConfigs: \n{}\n".format(self.cfgs))
+        self.txt_logger.write(f"\n{datetime.datetime.now()}")
+        self.txt_logger.write(f"\n\nSave Directory: \n{self.cfgs['save_dir']}")
+        self.txt_logger.write(f"\n\nConfigs: \n{self.cfgs}\n")
 
         ####### MODEL
         pretrained = not self.cfgs["meta"]["train"]["resume_train"]
 
         model = models.get_model(self.cfgs, pretrained=pretrained)
-        self.device = torch.device("cuda:{}".format(self.cfgs["local_rank"]))
+        self.device = torch.device(f"cuda:{self.cfgs['local_rank']}")
         self.model = model.to(self.device)
 
         ####### Data
-
-        train_dataset = inputs.get_dataset(self.cfgs, mode="train")
-        self.txt_logger.write("\nTrain:  \n{}\n".format(len(train_dataset)))
-
-        train_sampler = None
-        self.train_loader = DataLoader(
-            dataset=train_dataset,
-            batch_size=self.cfgs["batch_size"],
-            num_workers=self.cfgs["num_workers"],
-            pin_memory=True,
-            drop_last=False,
-            collate_fn=inputs.get_collater(),
-            sampler=train_sampler,
-        )
+        self.train_loader = vin.get_dataloader(self.cfgs, mode="train")
+        self.txt_logger.write(f"\nTrain:  \n{len(self.train_loader.dataset)}\n")
 
         ####### Opts
         self.optimizer = opts.get_optimizer(self.cfgs, self.model.parameters())
@@ -79,7 +67,7 @@ class Trainer(object):
         ####### Validator
         self.validator = Validator(self.cfgs, self.device)
         self.txt_logger.write(
-            "Val:  \n{}\n".format(len(self.validator.val_loader.dataset))
+            f"Val:  \n{len(self.validator.val_loader.dataset)}\n"
         )
 
     def do_train(self):
@@ -98,7 +86,7 @@ class Trainer(object):
                     self.tot_val_record["best"]["epoch"],
                 )
                 resume_model_dir = os.path.join(
-                    self.cfgs["save_dir"], "epoch_{}.pt".format(self.resume_epoch)
+                    self.cfgs["save_dir"], f"epoch_{self.resume_epoch}.pt"
                 )
                 checkpoint = torch.load(resume_model_dir)
                 self.model.load_state_dict(checkpoint["model"], strict=True)
@@ -129,9 +117,7 @@ class Trainer(object):
                 )
                 best_epoch = self.tot_val_record["best"]["epoch"]
                 self.txt_logger.write(
-                    "\n\nBest saved at: {}, {} epoch\n\n".format(
-                        self.cfgs["save_dir"], best_epoch
-                    )
+                    f"\n\nBest saved at: {self.cfgs["save_dir"]}, {best_epoch} epoch\n\n"
                 )
                 break
             self.train_val_one_epoch()
@@ -274,15 +260,16 @@ class Trainer(object):
             )
             self.txt_logger.write("\n")
 
-            for k in ["cls_auc", "cls_sens", "cls_spec"]:
-                self.txt_logger.write(f"{k}: {val_record[k]:.4f}  ")
-            self.txt_logger.write("\n")
+            if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+                for k in ["cls_auc", "cls_sens", "cls_spec"]:
+                    self.txt_logger.write(f"{k}: {val_record[k]:.4f}  ")
+                self.txt_logger.write("\n")
 
-            for f in inputs.FINDINGS:
-                self.txt_logger.write(f"{f[:4]} ")
+            for f in vin.FINDINGS:
+                self.txt_logger.write(f"{f[:6]:>6} ")
             self.txt_logger.write("\n")
             for v in val_record["APs"]:
-                self.txt_logger.write(f"{v:.2f} ")
+                self.txt_logger.write(f"{v:.4f} ")
             self.txt_logger.write("\n")
 
             # for k in ["det_recl", "det_prec", "det_fppi", "det_f1"]:
@@ -290,8 +277,6 @@ class Trainer(object):
             #     for v in val_record[k]:
             #         self.txt_logger.write(f"{v:.2f} ")
             #     self.txt_logger.write("\n")
-
-            # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
 
             self.txt_logger.write(f"mAP: {val_record['mAP']:.4f}")
             self.txt_logger.write("\n")
@@ -327,11 +312,7 @@ class Trainer(object):
             if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
                 metric_keys = ["cls_auc", "cls_sens", "cls_spec"]
                 self.tb_writer.write_scalars(
-                    {
-                        "metrics": {
-                            "{}".format(key): val_record[key] for key in metric_keys
-                        }
-                    },
+                    {"metrics": {f"{key}": val_record[key] for key in metric_keys}},
                     self.epoch,
                 )
 
