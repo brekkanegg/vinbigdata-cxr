@@ -42,15 +42,21 @@ FINDINGS = [
 def get_dataloader(cfgs, mode="train"):
 
     if mode == "train":
-        transform = augmentations.train_multi_augment12
+        transform = getattr(augmentations, cfgs["meta"]["inputs"]["augment"])
         collate_fn = collater
 
     elif mode == "val":
-        transform = None
+        if cfgs["meta"]["inputs"]["augment"] == "imagenet":
+            transform = augmentations.imagenet_val
+        else:
+            transform = None
         collate_fn = collater
 
     elif mode == "test":
-        transform = None
+        if cfgs["meta"]["inputs"]["augment"] == "imagenet":
+            transform = augmentations.imagenet_val
+        else:
+            transform = None
         collate_fn = collater_test
 
     _dataset = VIN(cfgs, transform=transform, mode=mode)
@@ -232,10 +238,11 @@ class VIN(Dataset):
                 interpolation = cv2.INTER_LANCZOS4
             img = cv2.resize(img, (ims, ims), interpolation=interpolation)
 
+        img = self.windowing(img)
+
         # FIXME: concat and windowing
         img = np.concatenate((img[:, :, np.newaxis],) * 3, axis=2)
 
-        img = self.windowing(img)
         img = img.astype(np.float32)
 
         if self.cfgs["run"] == "test":
@@ -331,17 +338,19 @@ class VIN(Dataset):
             img[img > 1.0] = 1.0
 
         elif self.cfgs["meta"]["inputs"]["window"] == "imagenet":
+            # do in augmentation
+            pass
 
-            img = (img - img.min()) / img.max() - img.min()
+            # img = (img - img.min()) / img.max() - img.min()
 
-            stat_mean = (0.485, 0.456, 0.406)
-            stat_std = (0.229, 0.224, 0.225)
+            # stat_mean = (0.485, 0.456, 0.406)
+            # stat_std = (0.229, 0.224, 0.225)
 
-            img[:, :, 0] = (img[:, :, 0] - stat_mean[0]) / stat_std[0]
-            img[:, :, 1] = (img[:, :, 1] - stat_mean[1]) / stat_std[1]
-            img[:, :, 2] = (img[:, :, 2] - stat_mean[2]) / stat_std[2]
+            # img[:, :, 0] = (img[:, :, 0] - stat_mean[0]) / stat_std[0]
+            # img[:, :, 1] = (img[:, :, 1] - stat_mean[1]) / stat_std[1]
+            # img[:, :, 2] = (img[:, :, 2] - stat_mean[2]) / stat_std[2]
 
-            img = (img - stat_mean) / stat_std
+            # img = (img - stat_mean) / stat_std
 
         return img
 
