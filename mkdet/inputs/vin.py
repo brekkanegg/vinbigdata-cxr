@@ -337,6 +337,10 @@ class VIN(Dataset):
             stat_mean = (0.485, 0.456, 0.406)
             stat_std = (0.229, 0.224, 0.225)
 
+            img[:, :, 0] = (img[:, :, 0] - stat_mean[0]) / stat_std[0]
+            img[:, :, 1] = (img[:, :, 1] - stat_mean[1]) / stat_std[1]
+            img[:, :, 2] = (img[:, :, 2] - stat_mean[2]) / stat_std[2]
+
             img = (img - stat_mean) / stat_std
 
         return img

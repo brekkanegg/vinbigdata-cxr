@@ -149,6 +149,9 @@ class Testor(object):
         # Check number of normal row
         print("\n\nTotal Number of Rows: ", len(submit_csv))
         print(
+            "\n\nTotal Number of Bboxes: ",
+        )
+        print(
             "Number of Normal Rows: ",
             len(submit_csv[submit_csv["PredictionString"] == "14 1 0 0 1 1"]),
         )

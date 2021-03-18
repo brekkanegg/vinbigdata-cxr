@@ -66,9 +66,7 @@ class Trainer(object):
 
         ####### Validator
         self.validator = Validator(self.cfgs, self.device)
-        self.txt_logger.write(
-            f"Val:  \n{len(self.validator.val_loader.dataset)}\n"
-        )
+        self.txt_logger.write(f"Val:  \n{len(self.validator.val_loader.dataset)}\n")
 
     def do_train(self):
 
@@ -117,7 +115,7 @@ class Trainer(object):
                 )
                 best_epoch = self.tot_val_record["best"]["epoch"]
                 self.txt_logger.write(
-                    f"\n\nBest saved at: {self.cfgs["save_dir"]}, {best_epoch} epoch\n\n"
+                    f"\n\nBest saved at: {self.cfgs['save_dir']}, {best_epoch} epoch\n\n"
                 )
                 break
             self.train_val_one_epoch()
