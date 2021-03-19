@@ -5,7 +5,7 @@ model:
   old: False
   feat_start_layer: 1
   max_det: 50
-  det_th: 0.1
+  det_th: 0.01
   nms_th: 0.5
   nms_fn: nms_naive
 opts:
@@ -22,16 +22,16 @@ loss:
   neg_th: 0.2
 inputs: 
   image_size: 768
-  label: vin
   num_classes: 14
+  window: cxr
   augment: train_multi_augment12
   label_smooth: 0.1
   nms_fn: wbf
   nms_th: 0.5
   abnormal_only: False
-  window: cxr
+  label: vin
 train:
-  posneg_ratio: Null
+  posneg_ratio: 1 #Null
   load_ckpt: Null
   resume_train: False
   max_epoch: 100
