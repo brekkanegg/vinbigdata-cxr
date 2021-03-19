@@ -5,7 +5,7 @@ model:
   old: False
   feat_start_layer: 1
   max_det: 20
-  det_th: 0.01
+  det_th: 0.1
   nms_th: 0.15
   nms_fn: naive
 opts:
