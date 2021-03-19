@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torchvision
 import numpy as np
+
 # from torchvision.ops import nms
 # from torchvision.ops import batched_nms
 
@@ -247,24 +248,29 @@ class EfficientDet(nn.Module):
                     bic_scores = classification[bi, bic_scores_over_thresh, c]
 
                     # bi_classes = scores_class[bi, bi_scores_over_thresh, 0]
-                    bic_classes = np.ones(bic_scores.shape[0]) * c
+                    bic_classes = np.ones(bic_scores.shape[0]).astype(np.int) * c
 
                     (
-                        bboxes_coord,
-                        bboxes_score,
-                        bboxes_cat,
+                        bic_nms_bbox,
+                        bic_nms_score,
+                        bic_nms_class,
                     ) = ensemble_boxes.weighted_boxes_fusion(
                         [bic_transformed_anchors.tolist()],
                         [bic_scores.tolist()],
                         [bic_classes.tolist()],
-                        weights=[1],
+                        weights=None,
+                        iou_thr=nms_th,
                         skip_box_thr=det_th,
                     )
 
-                    if bboxes_score.shape[0] > max_det:
-                        bic_nms_bbox = bboxes_coord[:max_det]
-                        bic_nms_score = bboxes_score[:max_det]
-                        bic_nms_class = bboxes_cat[:max_det]
+                    bic_nms_bbox = torch.from_numpy(bic_nms_bbox)
+                    bic_nms_score = torch.from_numpy(bic_nms_score)
+                    bic_nms_class = torch.from_numpy(bic_nms_class)
+
+                    if bic_nms_score.shape[0] > max_det:
+                        bic_nms_bbox = bic_nms_bbox[:max_det]
+                        bic_nms_score = bic_nms_score[:max_det]
+                        bic_nms_class = bic_nms_class[:max_det]
 
                     preds[bi].append(
                         torch.cat(
