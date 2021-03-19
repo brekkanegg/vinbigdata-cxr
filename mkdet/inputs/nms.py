@@ -94,7 +94,7 @@ def wbf(bboxes_coord, bboxes_cat, bboxes_rad, nms_th=0.4, image_size=None):
         scores_list.append([1.0] * sum(rid_bbox_index))
 
     bboxes_coord, _, bboxes_cat = ensemble_boxes.weighted_boxes_fusion(
-        bboxes_list, scores_list, labels_list, weights, skip_box_thr=0.1
+        bboxes_list, scores_list, labels_list, weights, iou_thr=nms_th, skip_box_thr=0.1
     )
 
     # Back to original size

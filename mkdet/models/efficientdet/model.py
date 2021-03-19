@@ -124,7 +124,7 @@ class EfficientDet(nn.Module):
         transformed_anchors = self.clipBoxes(transformed_anchors, inputs)
 
         preds = {}
-        if nms_fn == "nms_naive":
+        if nms_fn == "naive":
             scores, scores_class = torch.max(classification, dim=2, keepdim=True)
             scores_over_thresh = (scores > det_th)[:, :, 0]
 
@@ -166,7 +166,7 @@ class EfficientDet(nn.Module):
 
             return preds
 
-        elif nms_fn == "nms_svcat":
+        elif nms_fn == "svcat":
             # FIXME: 클래스별로 normlaized threshold 가 필요할 수도 있다
             # FIXME: det_th : classwise different??
             ################
@@ -204,6 +204,67 @@ class EfficientDet(nn.Module):
                     bic_nms_class = torch.ones_like(bic_anchors_nms_idx) * c
                     bic_nms_score = bic_scores[bic_anchors_nms_idx]
                     bic_nms_bbox = bic_transformed_anchors[bic_anchors_nms_idx]
+
+                    preds[bi].append(
+                        torch.cat(
+                            (
+                                bic_nms_bbox,
+                                bic_nms_class.unsqueeze(-1),
+                                bic_nms_score.unsqueeze(-1),
+                            ),
+                            dim=1,
+                        )
+                    )
+
+                preds[bi] = torch.cat(preds[bi], dim=0)
+
+            return preds
+
+        elif nms_fn == "wbf":
+            # FIXME: 클래스별로 normlaized threshold 가 필요할 수도 있다
+            # FIXME: det_th : classwise different??
+            ################
+            # scores, scores_class = torch.max(classification, dim=2, keepdim=True)
+            scores_over_thresh = classification > det_th
+
+            for bi in range(scores_over_thresh.shape[0]):
+                bi_scores_over_thresh = scores_over_thresh[bi, :, :]
+                if torch.sum(bi_scores_over_thresh) == 0:
+                    # no boxes to NMS, just return
+                    preds[bi] = torch.zeros((0, 6))  # bbox(4), class(1), score(1)
+                    continue
+
+                # bi_transformed_anchors = transformed_anchors[bi, :, :]
+                preds[bi] = []
+                for c in range(scores_over_thresh.shape[2]):
+                    bic_scores_over_thresh = bi_scores_over_thresh[:, c]
+                    if torch.sum(bic_scores_over_thresh) == 0:
+                        continue
+
+                    bic_transformed_anchors = transformed_anchors[
+                        bi, bic_scores_over_thresh, :
+                    ]
+                    bic_scores = classification[bi, bic_scores_over_thresh, c]
+
+                    # bi_classes = scores_class[bi, bi_scores_over_thresh, 0]
+                    bic_classes = torch.ones_like(bic_scores) * c
+
+                    (
+                        bboxes_coord,
+                        bboxes_score,
+                        bboxes_cat,
+                    ) = ensemble_boxes.weighted_boxes_fusion(
+                        bic_transformed_anchors.tolist(),
+                        bic_scores.tolist(),
+                        bic_classes,
+                        weights=None,
+                        skip_box_thr=det_th,
+                    )
+
+                    if bboxes_score.shape[0] > max_det:
+                        bic_nms_bbox = bboxes_coord[:max_det]
+                        bic_nms_score = bboxes_score[:max_det]
+                        bic_nms_class = bboxes_cat[:max_det]
 
                     preds[bi].append(
                         torch.cat(
