@@ -37,9 +37,9 @@ class Testor(object):
         self.device = torch.device(f"cuda:{self.cfgs['local_rank']}")
         model = model.to(self.device)
 
-        ckpt_dir = f"/nfs3/minki/kaggle/vinbigdata-cxr/mkdet/ckpt/{load_dir}"
+        # ckpt_dir = f"/nfs3/minki/kaggle/vinbigdata-cxr/mkdet/ckpt/{load_dir}"
 
-        with open(ckpt_dir + "/tot_val_record.pkl", "rb") as f:
+        with open(load_dir + "/tot_val_record.pkl", "rb") as f:
             tot_val_record = pickle.load(f)
 
         if load_epoch == "":
@@ -48,7 +48,7 @@ class Testor(object):
         else:
             best_epoch = load_epoch
 
-        load_model_dir = os.path.join(ckpt_dir, f"epoch_{best_epoch}.pt")
+        load_model_dir = os.path.join(load_dir, f"epoch_{best_epoch}.pt")
 
         print("Load: ", load_model_dir)
         pprint.pprint(tot_val_record[str(best_epoch)])
