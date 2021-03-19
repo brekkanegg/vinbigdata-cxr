@@ -14,6 +14,8 @@ import torchvision
 
 # from efficientnet_pytorch import EfficientNet  # outdated
 import timm
+import ensemble_boxes
+
 
 from .bifpn import BiFPN
 from .retinahead import RetinaHead

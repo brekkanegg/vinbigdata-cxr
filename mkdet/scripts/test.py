@@ -18,7 +18,10 @@ class Testor(object):
     def __init__(self, cfgs, device=None):
 
         self.cfgs = cfgs
+        self.cfgs["save_dir"] = misc.set_save_dir(cfgs)
+
         self.cfgs_test = self.cfgs["meta"]["test"]
+
         self.device = device
 
         ####### DATA
@@ -57,13 +60,14 @@ class Testor(object):
 
     def do_test(self):
 
-        load_dir = input("Test ckpt dir: ")
         try:
             memo = input("Submit csv name: ")
         except SyntaxError:
             print("Enter submit csv name")
             raise ()
+
         load_epoch = input("Test epoch: ")
+
         # reduce_size = input("Reduce bbox size (t/f): ")
         # if reduce_size == "t":
         #     reduce_size = True
@@ -88,7 +92,7 @@ class Testor(object):
         )
 
         print("Doing Inference.. ")
-        self.model = self.load_model(load_dir, load_epoch)
+        self.model = self.load_model(self.cfgs["save_dir"], load_epoch)
 
         submit_df = []
         ims = self.cfgs["meta"]["inputs"]["image_size"]
