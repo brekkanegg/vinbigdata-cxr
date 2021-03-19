@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import torchvision
-
+import numpy as np
 # from torchvision.ops import nms
 # from torchvision.ops import batched_nms
 
@@ -247,17 +247,17 @@ class EfficientDet(nn.Module):
                     bic_scores = classification[bi, bic_scores_over_thresh, c]
 
                     # bi_classes = scores_class[bi, bi_scores_over_thresh, 0]
-                    bic_classes = torch.ones_like(bic_scores) * c
+                    bic_classes = np.ones(bic_scores.shape[0]) * c
 
                     (
                         bboxes_coord,
                         bboxes_score,
                         bboxes_cat,
                     ) = ensemble_boxes.weighted_boxes_fusion(
-                        bic_transformed_anchors.tolist(),
-                        bic_scores.tolist(),
-                        bic_classes,
-                        weights=None,
+                        [bic_transformed_anchors.tolist()],
+                        [bic_scores.tolist()],
+                        [bic_classes.tolist()],
+                        weights=[1],
                         skip_box_thr=det_th,
                     )
 
@@ -281,6 +281,8 @@ class EfficientDet(nn.Module):
 
             return preds
 
+        else:
+            raise
         # elif nms == "nms_svcatV2":
         #     # FIXME: 클래스별로 normlaized threshold 가 필요할 수도 있다
 
