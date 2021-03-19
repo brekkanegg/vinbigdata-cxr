@@ -19,6 +19,7 @@ class Testor(object):
 
         self.cfgs = cfgs
         self.cfgs["save_dir"] = misc.set_save_dir(cfgs)
+        print(f"\n\nConfigs: \n{self.cfgs}\n")
 
         self.cfgs_test = self.cfgs["meta"]["test"]
 
@@ -29,7 +30,7 @@ class Testor(object):
 
         self.meta_dict = self.test_loader.dataset.meta_dict
 
-    def load_model(self, load_dir, load_epoch=None):
+    def load_model(self, load_dir):
         # self.cfgs["save_dir"] = misc.set_save_dir(self.cfgs)
 
         # model = EfficientDet(self.cfgs)
@@ -42,11 +43,9 @@ class Testor(object):
         with open(load_dir + "/tot_val_record.pkl", "rb") as f:
             tot_val_record = pickle.load(f)
 
-        if load_epoch == "":
+        best_epoch = self.cfgs["meta"]["test"]["best_epoch"]
+        if best_epoch is None:
             best_epoch = tot_val_record["best"]["epoch"]
-
-        else:
-            best_epoch = load_epoch
 
         load_model_dir = os.path.join(load_dir, f"epoch_{best_epoch}.pt")
 
@@ -68,8 +67,6 @@ class Testor(object):
                 raise ()
         else:
             submit_name = self.cfgs_test["submit_name"]
-
-        load_epoch = input("Test epoch: ")
 
         # reduce_size = input("Reduce bbox size (t/f): ")
         # if reduce_size == "t":
@@ -95,7 +92,7 @@ class Testor(object):
         )
 
         print("Doing Inference.. ")
-        self.model = self.load_model(self.cfgs["save_dir"], load_epoch)
+        self.model = self.load_model(self.cfgs["save_dir"])
 
         submit_df = []
         ims = self.cfgs["meta"]["inputs"]["image_size"]
@@ -155,7 +152,7 @@ class Testor(object):
 
         # Check number of normal row
         print("\n\nTotal Number of Rows: ", len(submit_csv))
-        print("\n\nTotal Number of Bboxes: ", pred_bbox_num)
+        print("Total Number of Bboxes: ", pred_bbox_num)
         print(
             "Number of Normal Rows: ",
             len(submit_csv[submit_csv["PredictionString"] == "14 1 0 0 1 1"]),
