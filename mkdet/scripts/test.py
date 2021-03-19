@@ -60,11 +60,14 @@ class Testor(object):
 
     def do_test(self):
 
-        try:
-            memo = input("Submit csv name: ")
-        except SyntaxError:
-            print("Enter submit csv name")
-            raise ()
+        if self.cfgs_test["submit_name"] is None:
+            try:
+                submit_name = input("Submit csv name: ")
+            except SyntaxError:
+                print("Enter submit csv name")
+                raise ()
+        else:
+            submit_name = self.cfgs_test["submit_name"]
 
         load_epoch = input("Test epoch: ")
 
@@ -158,7 +161,9 @@ class Testor(object):
             len(submit_csv[submit_csv["PredictionString"] == "14 1 0 0 1 1"]),
         )
 
-        submit_dir = os.path.join(self.cfgs_test["submit_dir"], f"{memo}_submit.csv")
+        submit_dir = os.path.join(
+            self.cfgs_test["submit_dir"], f"{submit_name}_submit.csv"
+        )
         submit_csv.to_csv(submit_dir, index=False)
         print("Submission csv saved in: ", submit_dir)
 
