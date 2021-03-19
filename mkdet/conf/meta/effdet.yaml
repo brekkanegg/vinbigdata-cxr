@@ -51,4 +51,4 @@ test:
   use_classifier: True
   best_epoch: Null
   submit_dir: /nfs3/minki/kaggle/vinbigdata-cxr/submit
- 
+  submit_name: Null
