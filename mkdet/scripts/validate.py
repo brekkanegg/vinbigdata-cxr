@@ -30,7 +30,7 @@ class Validator(object):
         self.meta_dict = self.val_loader.dataset.meta_dict
 
         # Vin Eval
-        self.nms = self.val_loader.dataset.nms
+        self.nms_fn = self.val_loader.dataset.nms_fn
 
         # init
         self.gt_dict = None
@@ -98,9 +98,8 @@ class Validator(object):
                     bboxes_rad.append(brad)
 
             if len(bboxes_coord) >= 2:
-
-                bboxes_coord, bboxes_cat = self.nms(
-                    bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.5, image_size=ims
+                bboxes_coord, bboxes_cat = self.nms_fn(
+                    bboxes_coord, bboxes_cat, bboxes_rad, nms_th=0.5, image_size=ims
                 )
 
             bboxes = [list(b) + [c] for (b, c) in zip(bboxes_coord, bboxes_cat)]
@@ -251,8 +250,6 @@ class Validator(object):
                     "ann": det_anns_viz,
                 }
 
-        # FIXME: each AP
-        # debug:
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
             self.vineval.image_ids = sorted(self.pred_dict.keys())
 

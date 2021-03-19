@@ -266,6 +266,7 @@ class Trainer(object):
             for f in vin.FINDINGS:
                 self.txt_logger.write(f"{f[:6]:>6} ")
             self.txt_logger.write("\n")
+            self.txt_logger.write("APs: \n")
             for v in val_record["APs"]:
                 self.txt_logger.write(f"{v:.4f} ")
             self.txt_logger.write("\n")
@@ -278,7 +279,7 @@ class Trainer(object):
 
             self.txt_logger.write(f"mAP: {val_record['mAP']:.4f}")
             self.txt_logger.write("\n")
-            self.txt_logger.write(f"best epoch: {vbest_epoch}")
+            self.txt_logger.write(f"best epoch: {vbest_epoch} / {val_best:.4f}")
             self.txt_logger.write("\n", txt_write=True)
             self.txt_logger.write("\n", txt_write=False)
 

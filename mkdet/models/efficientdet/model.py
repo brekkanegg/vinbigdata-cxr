@@ -7,8 +7,10 @@ import math
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from torchvision.ops import nms
-from torchvision.ops import batched_nms
+import torchvision
+
+# from torchvision.ops import nms
+# from torchvision.ops import batched_nms
 
 # from efficientnet_pytorch import EfficientNet  # outdated
 import timm
@@ -104,67 +106,163 @@ class EfficientDet(nn.Module):
         outputs_dict["anchors"] = anchors
 
         if mode != "train":
-            det_th = self.cfgs["meta"]["model"]["det_th"]
-            transformed_anchors = self.regressBoxes(anchors, regression)
-            transformed_anchors = self.clipBoxes(transformed_anchors, inputs)
+            preds = self.detect(inputs, anchors, regression, classification)
+            outputs_dict["preds"] = preds
+
+        return outputs_dict
+
+    def detect(self, inputs, anchors, regression, classification):
+
+        det_th = self.cfgs["meta"]["model"]["det_th"]
+        max_det = self.cfgs["meta"]["model"]["max_det"]
+        nms_fn = self.cfgs["meta"]["model"]["nms_fn"]
+        nms_th = self.cfgs["meta"]["model"]["nms_th"]
+
+        transformed_anchors = self.regressBoxes(anchors, regression)
+        transformed_anchors = self.clipBoxes(transformed_anchors, inputs)
+
+        preds = {}
+        if nms_fn == "nms_naive":
             scores, scores_class = torch.max(classification, dim=2, keepdim=True)
             scores_over_thresh = (scores > det_th)[:, :, 0]
 
-            preds = {}
+            for bi in range(scores_over_thresh.shape[0]):
+                bi_scores_over_thresh = scores_over_thresh[bi]
 
-            for bi in range(scores.shape[0]):
-                bi_scores_over_thresh = scores_over_thresh[bi, :]
-                if bi_scores_over_thresh.sum() == 0:
+                if torch.sum(bi_scores_over_thresh) == 0:
                     # print("No boxes to NMS")
                     # no boxes to NMS, just return
                     preds[bi] = torch.zeros((0, 6))  # bbox(4), class(1), score(1)
                     continue
 
-                # bi_transformed_anchors = transformed_anchors[bi, :, :]
-                bi_classification = classification[bi, bi_scores_over_thresh, :]
                 bi_transformed_anchors = transformed_anchors[
                     bi, bi_scores_over_thresh, :
                 ]
-                bi_scores = scores[bi, bi_scores_over_thresh, :]
-                # FIXME: memory constrarint -- cpu()
-                bi_anchors_nms_idx = nms(
-                    bi_transformed_anchors,
-                    bi_scores[:, 0],
-                    iou_threshold=self.cfgs["meta"]["model"]["nms_th"],
-                )
-                bi_nms_scores, bi_nms_class = bi_classification[
-                    bi_anchors_nms_idx, :
-                ].max(dim=1)
+                bi_scores = scores[bi, bi_scores_over_thresh, 0]
+                bi_classes = scores_class[bi, bi_scores_over_thresh, 0]
 
-                bi_pred_bbox = bi_transformed_anchors[bi_anchors_nms_idx, :]
+                bi_anchors_nms_idx = torchvision.ops.nms(
+                    bi_transformed_anchors,
+                    bi_scores,
+                    iou_threshold=nms_th,
+                )
+                if bi_anchors_nms_idx.shape[0] > max_det:
+                    bi_anchors_nms_idx = bi_anchors_nms_idx[:max_det]
+
+                bi_nms_class = bi_classes[bi_anchors_nms_idx]
+                bi_nms_score = bi_scores[bi_anchors_nms_idx]
+
+                bi_nms_bbox = bi_transformed_anchors[bi_anchors_nms_idx, :]
                 preds[bi] = torch.cat(
                     (
-                        bi_pred_bbox,
+                        bi_nms_bbox,
                         bi_nms_class.unsqueeze(-1),
-                        bi_nms_scores.unsqueeze(-1),
+                        bi_nms_score.unsqueeze(-1),
                     ),
                     dim=1,
                 )
 
-            outputs_dict["preds"] = preds
+            return preds
 
-        return outputs_dict
+        elif nms_fn == "nms_svcat":
+            # FIXME: 클래스별로 normlaized threshold 가 필요할 수도 있다
+            # FIXME: det_th : classwise different??
+            ################
+            # scores, scores_class = torch.max(classification, dim=2, keepdim=True)
+            scores_over_thresh = classification > det_th
 
-        #     ################ TODO: batched_nms???
-        #     anchors_nms_idx = batched_nms(
-        #         boxes=transformed_anchors[scores_over_thresh, :],
-        #         scores=scores[scores_over_thresh],
-        #         idxs=scores_class[scores_over_thresh],
-        #         iou_threshold=self.cfgs["meta"]["val"]["nms_th"],
-        #     )
+            for bi in range(scores_over_thresh.shape[0]):
+                bi_scores_over_thresh = scores_over_thresh[bi, :, :]
+                if torch.sum(bi_scores_over_thresh) == 0:
+                    # no boxes to NMS, just return
+                    preds[bi] = torch.zeros((0, 6))  # bbox(4), class(1), score(1)
+                    continue
 
-        #     nms_score = scores[:, anchors_nms_idx, 0]
-        #     nms_class = scores_class[anchors_nms_idx]
-        #     nms_bbox = transformed_anchors[anchors_nms_idx]
+                # bi_transformed_anchors = transformed_anchors[bi, :, :]
+                preds[bi] = []
+                for c in range(scores_over_thresh.shape[2]):
+                    bic_scores_over_thresh = bi_scores_over_thresh[:, c]
+                    if torch.sum(bic_scores_over_thresh) == 0:
+                        continue
 
-        #     outputs_dict["preds"] = pred_bbox
+                    bic_transformed_anchors = transformed_anchors[
+                        bi, bic_scores_over_thresh, :
+                    ]
+                    bic_scores = classification[bi, bic_scores_over_thresh, c]
 
-        # return outputs_dict
+                    # bi_classes = scores_class[bi, bi_scores_over_thresh, 0]
+                    bic_anchors_nms_idx = torchvision.ops.nms(
+                        boxes=bic_transformed_anchors,
+                        scores=bic_scores,
+                        iou_threshold=nms_th,
+                    )
+                    if bic_anchors_nms_idx.shape[0] > max_det:
+                        bic_anchors_nms_idx = bic_anchors_nms_idx[:max_det]
+
+                    bic_nms_class = torch.ones_like(bic_anchors_nms_idx) * c
+                    bic_nms_score = bic_scores[bic_anchors_nms_idx]
+                    bic_nms_bbox = bic_transformed_anchors[bic_anchors_nms_idx]
+
+                    preds[bi].append(
+                        torch.cat(
+                            (
+                                bic_nms_bbox,
+                                bic_nms_class.unsqueeze(-1),
+                                bic_nms_score.unsqueeze(-1),
+                            ),
+                            dim=1,
+                        )
+                    )
+
+                preds[bi] = torch.cat(preds[bi], dim=0)
+
+            return preds
+
+        # elif nms == "nms_svcatV2":
+        #     # FIXME: 클래스별로 normlaized threshold 가 필요할 수도 있다
+
+        #     ################
+        #     scores, scores_class = torch.max(classification, dim=2, keepdim=True)
+        #     scores_over_thresh = (scores > det_th)[:, :, 0]
+
+        #     for bi in range(scores.shape[0]):
+        #         bi_scores_over_thresh = scores_over_thresh[bi, :]
+        #         if bi_scores_over_thresh.sum() == 0:
+        #             # print("No boxes to NMS")
+        #             # no boxes to NMS, just return
+        #             preds[bi] = torch.zeros((0, 6))  # bbox(4), class(1), score(1)
+        #             continue
+
+        #         # bi_transformed_anchors = transformed_anchors[bi, :, :]
+        #         bi_classification = classification[bi, bi_scores_over_thresh, :]
+        #         bi_transformed_anchors = transformed_anchors[
+        #             bi, bi_scores_over_thresh, :
+        #         ]
+        #         bi_scores = scores[bi, bi_scores_over_thresh, :]
+
+        #         #######
+        #         bi_scores_class = scores_class[bi, bi_scores_over_thresh, :]
+        #         bi_anchors_nms_idx = torchvision.ops.batched_nms(
+        #             boxes=bi_transformed_anchors,
+        #             scores=bi_scores[:, 0],
+        #             idxs=scores_class[bi_scores_over_thresh],
+        #             iou_threshold=self.cfgs["meta"]["model"]["nms_th"],
+        #         )
+
+        #         bi_nms_score = bi_scores[bi_anchors_nms_idx]
+        #         bi_nms_class = bi_scores_class[bi_anchors_nms_idx]
+        #         bi_nms_bbox = bi_transformed_anchors[bi_anchors_nms_idx]
+
+        #         preds[bi] = torch.cat(
+        #             (
+        #                 bi_nms_bbox,
+        #                 bi_nms_class.unsqueeze(-1),
+        #                 bi_nms_score.unsqueeze(-1),
+        #             ),
+        #             dim=1,
+        #         )
+
+        #     return preds
 
     def _init_weights(self):
         for m in self.modules():

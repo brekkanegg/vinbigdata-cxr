@@ -4,8 +4,10 @@ model:
   name: b4
   old: False
   feat_start_layer: 1
+  max_det: 50
   det_th: 0.1
   nms_th: 0.5
+  nms_fn: nms_naive
 opts:
   optimizer: adamw #adamw
   learning_rate: 1e-3
@@ -15,7 +17,7 @@ opts:
   warmup_epoch: 5
   weight_decay: 5e-6
 loss:
-  cls_weight: 0.1
+  cls_weight: 0.5
   pos_th: 0.4
   neg_th: 0.2
 inputs: 
@@ -24,7 +26,7 @@ inputs:
   num_classes: 14
   augment: train_multi_augment12
   label_smooth: 0.1
-  nms: wbf
+  nms_fn: wbf
   nms_th: 0.5
   abnormal_only: False
   window: cxr

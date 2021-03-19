@@ -74,7 +74,7 @@ def nms_naive(bboxes_coord, bboxes_cat, bboxes_rad=None, iou_th=0.4, image_size=
     return bboxes_coord, bboxes_cat
 
 
-def wbf(bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.4, image_size=None):
+def wbf(bboxes_coord, bboxes_cat, bboxes_rad, nms_th=0.4, image_size=None):
 
     weights = [1] * len(set(bboxes_rad))
 
@@ -104,7 +104,7 @@ def wbf(bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.4, image_size=None):
     return bboxes_coord, bboxes_cat
 
 
-def nms_savecat(bboxes_coord, bboxes_cat, bboxes_rad=None, iou_th=0.5, image_size=None):
+def nms_svcat(bboxes_coord, bboxes_cat, bboxes_rad=None, nms_th=0.5, image_size=None):
     bbox_sizes = np.array([(x1 - x0) * (y1 - y0) for (x0, y0, x1, y1) in bboxes_coord])
     order = bbox_sizes.argsort()  # [::-1]
     keep = [True] * len(order)
@@ -115,11 +115,11 @@ def nms_savecat(bboxes_coord, bboxes_cat, bboxes_rad=None, iou_th=0.5, image_siz
                 continue
 
             ov = check_overlap(bboxes_coord[order[i]], bboxes_coord[order[j]])
-            if ov > iou_th:
+            if ov > nms_th:
                 keep[order[j]] = False
             else:
                 ov = calc_iou(bboxes_coord[order[i]], bboxes_coord[order[j]])
-                if ov > iou_th:
+                if ov > nms_th:
                     keep[order[j]] = False
 
     bboxes_coord = [bb for (idx, bb) in enumerate(bboxes_coord) if keep[idx]]

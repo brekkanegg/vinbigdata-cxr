@@ -42,26 +42,27 @@ FINDINGS = [
 def get_dataloader(cfgs, mode="train"):
 
     if mode == "train":
-        transform = getattr(augmentations, cfgs["meta"]["inputs"]["augment"])
+        # transform = getattr(augmentations, cfgs["meta"]["inputs"]["augment"])
+        transform = augmentations.train_multi_augment12
         collate_fn = collater
 
     elif mode == "val":
-        if cfgs["meta"]["inputs"]["augment"] == "imagenet":
-            transform = augmentations.imagenet_val
-        else:
-            transform = None
+        # if cfgs["meta"]["inputs"]["augment"] == "imagenet":
+        #     transform = augmentations.imagenet_val
+        # else:
+        transform = None
         collate_fn = collater
 
     elif mode == "test":
-        if cfgs["meta"]["inputs"]["augment"] == "imagenet":
-            transform = augmentations.imagenet_val
-        else:
-            transform = None
+        # if cfgs["meta"]["inputs"]["augment"] == "imagenet":
+        #     transform = augmentations.imagenet_val
+        # else:
+        transform = None
         collate_fn = collater_test
 
     _dataset = VIN(cfgs, transform=transform, mode=mode)
 
-    _loader = InfiniteDataLoader(
+    _loader = DataLoader(
         dataset=_dataset,
         batch_size=cfgs["batch_size"],
         num_workers=cfgs["num_workers"],
@@ -70,6 +71,17 @@ def get_dataloader(cfgs, mode="train"):
         collate_fn=collate_fn,
         sampler=None,
     )
+
+    # FIXME: shuffle 을 아이디 순서 바꾸는 걸로 하는데, infinitedataloader 쓰면 처음에 define 할 때 순서가 고정인 것 같아서 일단 변경
+    # _loader = InfiniteDataLoader(
+    #     dataset=_dataset,
+    #     batch_size=cfgs["batch_size"],
+    #     num_workers=cfgs["num_workers"],
+    #     pin_memory=True,
+    #     drop_last=False,
+    #     collate_fn=collate_fn,
+    #     sampler=None,
+    # )
 
     return _loader
 
@@ -122,7 +134,7 @@ class VIN(Dataset):
                         self.pids
                     )
 
-            self.nms = getattr(nms, self.cfgs["meta"]["inputs"]["nms"])
+            self.nms_fn = getattr(nms, self.cfgs["meta"]["inputs"]["nms_fn"])
         else:
             with open(self.data_dir + "/test_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
@@ -221,7 +233,8 @@ class VIN(Dataset):
         else:
             pid = self.pids[index]
 
-        ims = self.cfgs["meta"]["inputs"]["image_size"]
+        ims = self.inputs_cfgs["image_size"]
+        nmsth = self.inputs_cfgs["nms_th"]
 
         if self.cfgs["run"] != "test":
             file_path = self.data_dir + f"/train/{pid}.png"
@@ -238,10 +251,16 @@ class VIN(Dataset):
                 interpolation = cv2.INTER_LANCZOS4
             img = cv2.resize(img, (ims, ims), interpolation=interpolation)
 
+        # FIXME: concat and windowing
+
         img = self.windowing(img)
 
-        # FIXME: concat and windowing
-        img = np.concatenate((img[:, :, np.newaxis],) * 3, axis=2)
+        # if self.cfgs["meta"]["inputs"]["window"] == "cxr":
+        # img = np.concatenate((img[np.newaxis, :, :],) * 3, axis=0)
+        # if self.cfgs["meta"]["inputs"]["window"] == "imagenet":
+
+        # else:
+        #     img = np.concatenate((img[:, :, np.newaxis],) * 3, axis=2)
 
         img = img.astype(np.float32)
 
@@ -297,8 +316,13 @@ class VIN(Dataset):
 
                 # NOTE: Simple NMS for multi-labeler case
                 if len(bboxes_coord) >= 2:  # ("cst" in mask_path[0]) and
-                    bboxes_coord, bboxes_cat = self.nms(
-                        bboxes_coord, bboxes_cat, bboxes_rad, iou_th=0.5, image_size=ims
+
+                    bboxes_coord, bboxes_cat = self.nms_fn(
+                        bboxes_coord,
+                        bboxes_cat,
+                        bboxes_rad,
+                        nms_th=nmsth,
+                        image_size=ims,
                     )
 
                 img_anns = {
@@ -325,6 +349,7 @@ class VIN(Dataset):
 
     def windowing(self, img):
         if self.cfgs["meta"]["inputs"]["window"] == "cxr":
+
             eps = 1e-6
             center = img.mean()
             if self.mode == "train":
@@ -337,20 +362,28 @@ class VIN(Dataset):
             img[img < 0.0] = 0.0
             img[img > 1.0] = 1.0
 
+            img = np.concatenate((img[:, :, np.newaxis],) * 3, axis=2)
+
         elif self.cfgs["meta"]["inputs"]["window"] == "imagenet":
+            # if self.mode == "val":
+            #     print("debug")
+
+            img = (img - img.min()) / (img.max() - img.min())
+
+            img = np.concatenate((img[:, :, np.newaxis],) * 3, axis=2)
+
             # do in augmentation
-            pass
+            # pass
 
-            # img = (img - img.min()) / img.max() - img.min()
+            stat_mean = (0.485, 0.456, 0.406)
+            stat_std = (0.229, 0.224, 0.225)
 
-            # stat_mean = (0.485, 0.456, 0.406)
-            # stat_std = (0.229, 0.224, 0.225)
+            img[:, :, 0] = (img[:, :, 0] - stat_mean[0]) / stat_std[0]
+            img[:, :, 1] = (img[:, :, 1] - stat_mean[1]) / stat_std[1]
+            img[:, :, 2] = (img[:, :, 2] - stat_mean[2]) / stat_std[2]
 
-            # img[:, :, 0] = (img[:, :, 0] - stat_mean[0]) / stat_std[0]
-            # img[:, :, 1] = (img[:, :, 1] - stat_mean[1]) / stat_std[1]
-            # img[:, :, 2] = (img[:, :, 2] - stat_mean[2]) / stat_std[2]
-
-            # img = (img - stat_mean) / stat_std
+        else:
+            raise
 
         return img
 
