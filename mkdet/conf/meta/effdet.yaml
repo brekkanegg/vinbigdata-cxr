@@ -25,7 +25,7 @@ inputs:
   num_classes: 14
   window: cxr
   augment: train_multi_augment12
-  label_smooth: 0.11
+  label_smooth: 0.1
   nms_fn: wbf
   nms_iou: 0.15
   abnormal_only: False
