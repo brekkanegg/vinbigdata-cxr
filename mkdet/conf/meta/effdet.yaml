@@ -31,7 +31,7 @@ inputs:
   abnormal_only: False
   # label: vin
 train:
-  posneg_ratio: Null #Null
+  posneg_ratio: 1 #Null
   load_ckpt: Null
   resume_train: False
   max_epoch: 200

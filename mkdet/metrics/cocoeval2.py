@@ -260,7 +260,7 @@ class VinBigDataEval:
         #     pred_dict, self.image_ids
         # )
 
-        if self.verbosity > 0:
+        if self.verbosity == 0:
             self._original_stdout = sys.stdout
             sys.stdout = open(os.devnull, "w")
 
@@ -287,7 +287,7 @@ class VinBigDataEval:
         cocoEval.accumulate()
         cocoEval.summarize()
 
-        if self.verbosity > 0:
+        if self.verbosity == 0:
             sys.stdout.close()
             sys.stdout = self._original_stdout
 
