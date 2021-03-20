@@ -234,7 +234,7 @@ class VIN(Dataset):
             pid = self.pids[index]
 
         ims = self.inputs_cfgs["image_size"]
-        nmsth = self.inputs_cfgs["nms_th"]
+        nms_iou = self.inputs_cfgs["nms_iou"]
 
         if self.cfgs["run"] != "test":
             file_path = self.data_dir + f"/train/{pid}.png"
@@ -321,7 +321,7 @@ class VIN(Dataset):
                         bboxes_coord,
                         bboxes_cat,
                         bboxes_rad,
-                        nms_th=nmsth,
+                        nms_iou=nms_iou,
                         image_size=ims,
                     )
 

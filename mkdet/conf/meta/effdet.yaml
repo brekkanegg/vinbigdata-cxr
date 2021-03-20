@@ -4,9 +4,9 @@ model:
   name: b4
   old: False
   feat_start_layer: 1
-  max_det: 20
+  max_det: 10
   det_th: 0.1
-  nms_th: 0.15
+  nms_iou: 0.15
   nms_fn: svcat
 opts:
   optimizer: adamw #adamw
@@ -27,14 +27,14 @@ inputs:
   augment: train_multi_augment12
   label_smooth: 0.1
   nms_fn: wbf
-  nms_th: 0.5
+  nms_iou: 0.15
   abnormal_only: False
   # label: vin
 train:
   posneg_ratio: 1 #Null
   load_ckpt: Null
   resume_train: False
-  max_epoch: 100
+  max_epoch: 200
   samples_per_epoch: Null
   endurance: 25
   display_interval: 4
@@ -45,6 +45,7 @@ val:
   use_classifier: True
   cls_th: 0.5   # use classifier case
   save_png: False
+  clsth_search: False
 test: 
   # prob_th: 0.1  # inference 
   cls_th: 0.5  # use classifier case

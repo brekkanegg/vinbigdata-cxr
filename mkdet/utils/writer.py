@@ -38,9 +38,8 @@ class Writer(SummaryWriter):
 
         # th = self.cfgs["meta"]["test"]["prob_th"]
 
-        if (img.max() > 1) or (img.min()< 0):
+        if (img.max() > 1) or (img.min() < 0):
             img = (img - img.min()) / (img.max() - img.min())
-
 
         gt_bbox, gt_class = gt[:, :4], gt[:, 4]
 

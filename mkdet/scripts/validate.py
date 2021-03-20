@@ -7,6 +7,9 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
+import pprint
+import copy
+
 
 import utils
 from utils import misc
@@ -14,8 +17,7 @@ from inputs import vin
 import models
 import opts
 
-from metrics.cocoeval import VinBigDataEval
-import pprint
+from metrics.cocoeval2 import VinBigDataEval
 
 
 class Validator(object):
@@ -60,6 +62,7 @@ class Validator(object):
     def get_gt_dict(self):
 
         ims = self.cfgs["meta"]["inputs"]["image_size"]
+        nms_iou = self.cfgs["meta"]["model"]["nms_iou"]
 
         temp_dict = {}
         for pid in tqdm(self.val_loader.dataset.pids):
@@ -99,7 +102,7 @@ class Validator(object):
 
             if len(bboxes_coord) >= 2:
                 bboxes_coord, bboxes_cat = self.nms_fn(
-                    bboxes_coord, bboxes_cat, bboxes_rad, nms_th=0.5, image_size=ims
+                    bboxes_coord, bboxes_cat, bboxes_rad, nms_iou, ims
                 )
 
             bboxes = [list(b) + [c] for (b, c) in zip(bboxes_coord, bboxes_cat)]
@@ -253,8 +256,58 @@ class Validator(object):
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
             self.vineval.image_ids = sorted(self.pred_dict.keys())
 
+        # TODO: det_th 아주 낮게 잡아놓고 해봐야할 듯
+
+        # FIXME: pred_dict 가 pred_df 였다면 더 편했을 듯
+        if self.cfgs["meta"]["val"]["clsth_search"]:
+
+            # Finding best det_th for each label
+            # Class-wise
+            cls_th_dict = {}
+            for c in range(14):
+                cls_th_dict["c"] = []
+                c_vineval = copy.deepcopy(self.vineval)
+                c_vineval.annotations["categories"] = c_vineval.annotations[
+                    "categories"
+                ][c]
+                c_vineval.annotations["annotations"] = c_vineval.gen_annotations(
+                    target_cat=c
+                )
+                c_vineval.predictions["categories"] = c_vineval.predictions[
+                    "categories"
+                ][c]
+
+                # Threshold-wise:
+                temp_dict = copy.deepcopy(self.pred_dict)
+                for k in self.pred_dict.keys():
+                    temp_dict[k]["bbox"] = temp_dict[k]["bbox"][
+                        temp_dict[k]["bbox"][:, 4] == c
+                    ]
+
+                ths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
+                for th in ths:
+                    for k in self.pred_dict.keys():
+                        temp_dict[k]["bbox"] = temp_dict[k]["bbox"][
+                            temp_dict[k]["bbox"][:, 5] >= th
+                        ]
+
+                    c_vineval.predictions["annotations"] = c_vineval.gen_predictions(
+                        temp_dict, target_cat=c
+                    )
+                    c_eval = c_vineval.evaluate(temp_dict)
+                    c_AP, c_AP2 = c_eval.stats
+                    cls_th_dict["c"].append(c_AP)
+
+        else:
+            self.vineval.predictions["annotations"] = self.vineval.gen_predictions(
+                self.pred_dict
+            )
+
         coco_eval = self.vineval.evaluate(self.pred_dict)
         mAP, APs = coco_eval.stats
+
+        # coco_eval = self.vineval.evaluate(self.pred_dict)
+        # mAP, APs = coco_eval.stats
 
         # det_pc = det_tp_nums_tot / (det_pred_nums_tot + 1e-5)
         # det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)

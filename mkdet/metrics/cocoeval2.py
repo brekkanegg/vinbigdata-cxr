@@ -4,8 +4,6 @@ import pandas as pd
 import numpy as np
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
-import datetime
-import time
 
 """
 modify to dictionary format
@@ -13,6 +11,9 @@ modify to dictionary format
 
 
 class MyCOCOeval(COCOeval):
+    # def __init__(self, cocoGt=None, cocoDt=None, iouType="segm"):
+    #     super().__init__(self, cocoGt=None, cocoDt=None, iouType="segm")
+
     def summarize(self):
         """
         Compute and display summary metrics for evaluation results.
@@ -72,21 +73,6 @@ class MyCOCOeval(COCOeval):
             out = _summarize(1)
             return out
 
-            # stats = np.zeros((12,))
-            # stats[0] = _summarize(1)
-            # stats[1] = _summarize(1, iouThr=0.5, maxDets=self.params.maxDets[2])
-            # stats[2] = _summarize(1, iouThr=0.75, maxDets=self.params.maxDets[2])
-            # stats[3] = _summarize(1, areaRng="small", maxDets=self.params.maxDets[2])
-            # stats[4] = _summarize(1, areaRng="medium", maxDets=self.params.maxDets[2])
-            # stats[5] = _summarize(1, areaRng="large", maxDets=self.params.maxDets[2])
-            # stats[6] = _summarize(0, maxDets=self.params.maxDets[0])
-            # stats[7] = _summarize(0, maxDets=self.params.maxDets[1])
-            # stats[8] = _summarize(0, maxDets=self.params.maxDets[2])
-            # stats[9] = _summarize(0, areaRng="small", maxDets=self.params.maxDets[2])
-            # stats[10] = _summarize(0, areaRng="medium", maxDets=self.params.maxDets[2])
-            # stats[11] = _summarize(0, areaRng="large", maxDets=self.params.maxDets[2])
-            # return stats
-
         if not self.eval:
             raise Exception("Please run accumulate() first")
         iouType = self.params.iouType
@@ -117,7 +103,7 @@ class VinBigDataEval:
 
     """
 
-    def __init__(self, true_dict):
+    def __init__(self, true_dict, verbosity=0):
 
         self.true_dict = true_dict
 
@@ -125,9 +111,9 @@ class VinBigDataEval:
 
         self.annotations = {
             "type": "instances",
-            "images": self.__gen_images(self.image_ids),
-            "categories": self.__gen_categories(),
-            "annotations": self.__gen_annotations(self.image_ids),
+            "images": self.gen_images(),
+            "categories": self.gen_categories(),
+            "annotations": self.gen_annotations(),
         }
 
         self.predictions = {
@@ -136,7 +122,9 @@ class VinBigDataEval:
             "annotations": None,
         }
 
-    def __gen_categories(self):
+        self.verbosity = verbosity
+
+    def gen_categories(self):
         # print("Generating category data...")
 
         cats = [
@@ -170,11 +158,11 @@ class VinBigDataEval:
 
         return results
 
-    def __gen_images(self, image_ids):
+    def gen_images(self):
         # print("Generating image data...")
         results = []
 
-        for idx, image_id in enumerate(image_ids):
+        for idx, image_id in enumerate(self.image_ids):
 
             # Add image identification.
             results.append(
@@ -185,16 +173,20 @@ class VinBigDataEval:
 
         return results
 
-    def __gen_annotations(self, image_ids):
+    def gen_annotations(self, target_cat=None):
         # print("Generating annotation data...")
         k = 0
         results = []
 
-        for idx, img_id in enumerate(image_ids):
+        for idx, img_id in enumerate(self.image_ids):
             img_info = self.true_dict[img_id]
             for bbox in img_info["bbox"]:
                 # bbox: x_min, y_min, x_max, y_max, cat
                 cat_id = bbox[4]
+                if target_cat is not None:
+                    if target_cat != int(cat_id):
+                        continue
+
                 x_min, y_min, x_max, y_max = bbox[:4]
                 results.append(
                     {
@@ -213,15 +205,19 @@ class VinBigDataEval:
 
         return results
 
-    def __gen_predictions(self, pred_dict, image_ids):
+    def gen_predictions(self, pred_dict, target_cat=None):
         # print("Generating prediction data...")
         k = 0
         results = []
 
-        for idx, img_id in enumerate(image_ids):
+        for idx, img_id in enumerate(self.image_ids):
             img_info = pred_dict[img_id]
             for bbox in img_info["bbox"]:
                 cat_id = bbox[4]
+                if target_cat is not None:
+                    if target_cat != int(cat_id):
+                        continue
+
                 x_min, y_min, x_max, y_max = bbox[:4]
                 results.append(
                     {
@@ -242,6 +238,9 @@ class VinBigDataEval:
         return results
 
     def evaluate(self, pred_dict, n_imgs=-1):
+        if self.predictions["annotations"] is None:
+            raise ("Please do .gen_predicitons() first!")
+
         """Evaluating your results
 
         Arguments:
@@ -256,34 +255,41 @@ class VinBigDataEval:
         """
 
         # if pred_dict is not None:
-        self.predictions["annotations"] = self.__gen_predictions(
-            pred_dict, self.image_ids
-        )
+        # TODO:  asd
+        # self.predictions["annotations"] = self.gen_predictions(
+        #     pred_dict, self.image_ids
+        # )
 
-        with HiddenPrints():
+        if self.verbosity > 0:
+            self._original_stdout = sys.stdout
+            sys.stdout = open(os.devnull, "w")
 
-            coco_ds = COCO()
-            coco_ds.dataset = self.annotations
-            coco_ds.createIndex()
+        coco_ds = COCO()
+        coco_ds.dataset = self.annotations
+        coco_ds.createIndex()
 
-            coco_dt = COCO()
-            coco_dt.dataset = self.predictions
-            coco_dt.createIndex()
+        coco_dt = COCO()
+        coco_dt.dataset = self.predictions
+        coco_dt.createIndex()
 
-            imgIds = sorted(coco_ds.getImgIds())
+        imgIds = sorted(coco_ds.getImgIds())
 
-            if n_imgs > 0:
-                imgIds = np.random.choice(imgIds, n_imgs)
+        if n_imgs > 0:
+            imgIds = np.random.choice(imgIds, n_imgs)
 
-            cocoEval = MyCOCOeval(coco_ds, coco_dt, "bbox")
-            cocoEval.params.imgIds = imgIds
-            cocoEval.params.useCats = True
-            cocoEval.params.iouType = "bbox"
-            cocoEval.params.iouThrs = np.array([0.4])
+        cocoEval = MyCOCOeval(coco_ds, coco_dt, "bbox")
+        cocoEval.params.imgIds = imgIds
+        cocoEval.params.useCats = True
+        cocoEval.params.iouType = "bbox"
+        cocoEval.params.iouThrs = np.array([0.4])
 
-            cocoEval.evaluate()
-            cocoEval.accumulate()
-            cocoEval.summarize()
+        cocoEval.evaluate()
+        cocoEval.accumulate()
+        cocoEval.summarize()
+
+        if self.verbosity > 0:
+            sys.stdout.close()
+            sys.stdout = self._original_stdout
 
         return cocoEval
 

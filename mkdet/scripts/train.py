@@ -226,8 +226,13 @@ class Trainer(object):
             # Save Model
             select_metric = self.cfgs["meta"]["val"]["best"]
             val_improved = False
-            if val_best >= self.tot_val_record["best"][select_metric]:
-                val_improved = True
+            if select_metric == 'mAP':
+                if val_best >= self.tot_val_record["best"][select_metric]:
+                    val_improved = True
+
+            if select_metric == 'loss':
+                if val_best < self.tot_val_record["best"][select_metric]:
+                    val_improved = True
 
             if val_improved:
                 checkpoint = {
@@ -263,10 +268,10 @@ class Trainer(object):
                     self.txt_logger.write(f"{k}: {val_record[k]:.4f}  ")
                 self.txt_logger.write("\n")
 
+            self.txt_logger.write("APs: \n")
             for f in vin.FINDINGS:
                 self.txt_logger.write(f"{f[:6]:>6} ")
             self.txt_logger.write("\n")
-            self.txt_logger.write("APs: \n")
             for v in val_record["APs"]:
                 self.txt_logger.write(f"{v:.4f} ")
             self.txt_logger.write("\n")
