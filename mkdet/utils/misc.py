@@ -23,6 +23,6 @@ def set_save_dir(cfgs):
     if cfgs["memo"] is not None:
         save_dict["memo"] = cfgs["memo"]  # 1,2,3
     specific_dir = ["{}-{}".format(key, save_dict[key]) for key in save_dict.keys()]
-    save_dir = os.path.join(cfgs["save_dir"], "_".join(specific_dir))
+    save_dir = os.path.join(cfgs["ckpt_dir"], "_".join(specific_dir))
 
     return save_dir
