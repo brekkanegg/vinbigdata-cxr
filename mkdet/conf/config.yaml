@@ -9,7 +9,7 @@ num_workers: 4
 use_amp: True
 local_rank: 0
 # data_dir: /nfs3/chestpa
-save_dir: /nfs3/minki/kaggle/vinbigdata-cxr/mkdet/ckpt
+ckpt_dir: /nfs3/minki/kaggle/vinbigdata-cxr/mkdet/ckpt
 data_dir: /data/minki/kaggle/vinbigdata-cxr/png_1024l
 fold: 1
 do_profiling: False

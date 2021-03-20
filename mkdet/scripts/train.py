@@ -155,7 +155,7 @@ class Trainer(object):
             losses_tot += loss * len(data["fp"])
             dlosses_tot += dloss * len(data["fp"])
             closses_tot += closs * len(data["fp"])
-            nums_tot += len(data["fp"])
+            nums_tot += len(data["fsave_png(cfgs, fp, img, pred)p"])
 
             # loss = loss.detach().item()
             # dloss = dloss.detach().item()
