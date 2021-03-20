@@ -25,13 +25,13 @@ inputs:
   num_classes: 14
   window: cxr
   augment: train_multi_augment12
-  label_smooth: 0.1
+  label_smooth: 0.11
   nms_fn: wbf
   nms_iou: 0.15
   abnormal_only: False
   # label: vin
 train:
-  posneg_ratio: 1 #Null
+  posneg_ratio: Null #Null
   load_ckpt: Null
   resume_train: False
   max_epoch: 200
