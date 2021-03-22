@@ -275,7 +275,7 @@ class Validator(object):
 
     def cls_th_search(self):
         # dths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
-        dths = [0.01, 0.025, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+        dths = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
 
         cls_th_combi = []
         for c in tqdm(range(14)):

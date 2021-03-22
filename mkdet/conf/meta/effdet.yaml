@@ -5,7 +5,7 @@ model:
   old: False
   feat_start_layer: 1
   max_det: 10
-  det_th: 0.01
+  det_th: 0.05
   nms_iou: 0.15
   nms_fn: svcat
 opts:
