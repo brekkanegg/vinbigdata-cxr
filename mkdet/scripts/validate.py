@@ -17,7 +17,7 @@ from inputs import vin
 import models
 import opts
 
-from metrics.cocoeval2 import VinBigDataEval
+from metrics.mapeval import VinBigDataEval
 
 
 class Validator(object):
@@ -79,7 +79,6 @@ class Validator(object):
             pid_rad = pid_bbox[:, 0]
 
             # pid_bbox order: rad_id, finding, finding_id, bbox(x_min, y_min, x_max, y_max) - xyxy가로, 세로
-
             for bi, bb in enumerate(pid_bbox):
                 bx0, by0, bx1, by1 = [float(i) for i in bb[-4:]]
                 blabel = int(bb[2])
@@ -130,12 +129,6 @@ class Validator(object):
                 self.model = self.load_model()
 
         ####### Init val result
-        # num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
-
-        # det_gt_nums_tot = np.zeros(num_classes)
-        # det_tp_nums_tot = np.zeros(num_classes)
-        # det_fp_nums_tot = np.zeros(num_classes)
-        # det_pred_nums_tot = np.zeros(num_classes)
         nums_tot = 0
         losses_tot = 0
         dlosses_tot = 0
@@ -197,30 +190,6 @@ class Validator(object):
                         # This is dummy bbox
                         bi_det_anns = np.array([[0, 0, 1, 1, 14]])
 
-                    # # evaluation
-                    # if (
-                    #     np.array_equal(bi_det_preds, np.array([[0, 0, 1, 1, 14, 1]]))
-                    # ) and np.array_equal(bi_det_anns, np.array([[0, 0, 1, 1, 14]])):
-
-                    #     num_classes = self.cfgs["meta"]["inputs"]["num_classes"]
-                    #     bi_det_gt_num = np.zeros(num_classes)
-                    #     bi_det_pred_num = np.zeros(num_classes)
-                    #     bi_det_tp_num = np.zeros(num_classes)
-                    #     bi_det_fp_num = np.zeros(num_classes)
-
-                    # else:
-                    #     (
-                    #         bi_det_gt_num,
-                    #         bi_det_pred_num,
-                    #         bi_det_tp_num,
-                    #         bi_det_fp_num,
-                    #     ) = evaluate(self.cfgs, bi_det_preds, bi_det_anns)
-
-                    # det_gt_nums_tot += bi_det_gt_num
-                    # det_tp_nums_tot += bi_det_tp_num
-                    # det_pred_nums_tot += bi_det_pred_num
-                    # det_fp_nums_tot += bi_det_fp_num
-
                     # Save_png
                     if (self.cfgs["run"] == "val") and self.cfgs_val["save_png"]:
                         self.tb_writer.write_images(
@@ -234,6 +203,7 @@ class Validator(object):
                         )
 
             # For Visualization in TB - abnormal
+            # FIXME:
             if self.cfgs["run"] == "train":
                 vizlist = np.random.permutation(list(range(len(data["fp"]))))
                 for viz_bi in vizlist:
@@ -253,91 +223,98 @@ class Validator(object):
                     "ann": det_anns_viz,
                 }
 
+        cls_gt_tot = np.array(cls_gt_tot)
+        cls_pred_tot = np.array(cls_pred_tot)
+        tn, fp, fn, tp = confusion_matrix(
+            cls_gt_tot, cls_pred_tot > self.cfgs["meta"]["val"]["cls_th"]
+        ).ravel()
+        cls_sens = tp / (tp + fn + 1e-5)
+        cls_spec = tn / (tn + fp + 1e-5)
+        cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
+
+        val_record = {
+            "loss": (losses_tot / (nums_tot + 1e-5)),
+            "dloss": (dlosses_tot / (nums_tot + 1e-5)),
+            "closs": (closses_tot / (nums_tot + 1e-5)),
+            "cls_auc": cls_auc,
+            "cls_sens": cls_sens,
+            "cls_spec": cls_spec,
+        }
+
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
             self.vineval.image_ids = sorted(self.pred_dict.keys())
 
-        # TODO: det_th 아주 낮게 잡아놓고 해봐야할 듯
-
-        # FIXME: pred_dict 가 pred_df 였다면 더 편했을 듯
+        # TODO:
         if self.cfgs["meta"]["val"]["clsth_search"]:
+            cls_th_combi = self.cls_th_search()
 
-            # Finding best det_th for each label
-            # Class-wise
-            cls_th_dict = {}
-            for c in range(14):
-                cls_th_dict["c"] = []
-                c_vineval = copy.deepcopy(self.vineval)
-                c_vineval.annotations["categories"] = c_vineval.annotations[
-                    "categories"
-                ][c]
-                c_vineval.annotations["annotations"] = c_vineval.gen_annotations(
-                    target_cat=c
-                )
-                c_vineval.predictions["categories"] = c_vineval.predictions[
-                    "categories"
-                ][c]
-
-                # Threshold-wise:
-                temp_dict = copy.deepcopy(self.pred_dict)
-                for k in self.pred_dict.keys():
-                    temp_dict[k]["bbox"] = temp_dict[k]["bbox"][
-                        temp_dict[k]["bbox"][:, 4] == c
-                    ]
-
-                ths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
-                for th in ths:
-                    for k in self.pred_dict.keys():
-                        temp_dict[k]["bbox"] = temp_dict[k]["bbox"][
-                            temp_dict[k]["bbox"][:, 5] >= th
-                        ]
-
-                    c_vineval.predictions["annotations"] = c_vineval.gen_predictions(
-                        temp_dict, target_cat=c
-                    )
-                    c_eval = c_vineval.evaluate(temp_dict)
-                    c_AP, c_AP2 = c_eval.stats
-                    cls_th_dict["c"].append(c_AP)
+            dths = [i[0] for i in cls_th_combi]
+            APs = [i[1] for i in cls_th_combi]
+            mAP = np.mean(APs)
+            val_record["mAP"] = mAP
+            val_record["APs"] = APs
+            val_record["dths"] = dths
 
         else:
             self.vineval.predictions["annotations"] = self.vineval.gen_predictions(
                 self.pred_dict
             )
 
-        coco_eval = self.vineval.evaluate(self.pred_dict)
-        mAP, APs = coco_eval.stats
-
-        # coco_eval = self.vineval.evaluate(self.pred_dict)
-        # mAP, APs = coco_eval.stats
-
-        # det_pc = det_tp_nums_tot / (det_pred_nums_tot + 1e-5)
-        # det_rc = det_tp_nums_tot / (det_gt_nums_tot + 1e-5)
-        # det_fppi = det_fp_nums_tot / (nums_tot + 1e-5)
-
-        val_record = {
-            "loss": (losses_tot / (nums_tot + 1e-5)),
-            "dloss": (dlosses_tot / (nums_tot + 1e-5)),
-            "closs": (closses_tot / (nums_tot + 1e-5)),
-            # "det_prec": det_pc,
-            # "det_recl": det_rc,
-            # "det_fppi": det_fppi,
-            # "det_f1": 2 * det_pc * det_rc / (det_pc + det_rc + 1e-5),
-            "mAP": mAP,
-            "APs": APs,
-        }
+            coco_eval = self.vineval.evaluate()
+            mAP, APs = coco_eval.stats
+            val_record["mAP"] = mAP
+            val_record["APs"] = APs
 
         # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-        cls_gt_tot = np.array(cls_gt_tot)
-        cls_pred_tot = np.array(cls_pred_tot)
-        tn, fp, fn, tp = confusion_matrix(cls_gt_tot, cls_pred_tot > 0.5).ravel()
-        cls_sens = tp / (tp + fn + 1e-5)
-        cls_spec = tn / (tn + fp + 1e-5)
-        cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
-
-        val_record["cls_auc"] = cls_auc
-        val_record["cls_sens"] = cls_sens
-        val_record["cls_spec"] = cls_spec
 
         if self.cfgs["run"] == "val":
             pprint.pprint(val_record)
+
         elif self.cfgs["run"] == "train":
             return val_record, val_viz
+
+    def cls_th_search(self):
+        cls_th_combi = []
+        for c in tqdm(range(14)):
+            c_vineval = copy.deepcopy(self.vineval)
+            c_vineval.annotations["categories"] = [
+                c_vineval.annotations["categories"][c]
+            ]
+            c_vineval.annotations["annotations"] = [
+                r
+                for r in self.vineval.annotations["annotations"]
+                if r["category_id"] == c
+            ]
+            c_vineval.predictions["categories"] = [
+                c_vineval.predictions["categories"][c]
+            ]
+
+            # Threshold-wise:
+            temp_dict = copy.deepcopy(self.pred_dict)
+            # FIXME: if len 0 remove?
+            for k in self.pred_dict.keys():
+                temp_dict[k]["bbox"] = temp_dict[k]["bbox"][
+                    temp_dict[k]["bbox"][:, 4] == c
+                ]
+
+            dths_aps = []
+            dths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
+            for dth in dths:
+                for k in self.pred_dict.keys():
+                    temp_dict[k]["bbox"] = temp_dict[k]["bbox"][
+                        temp_dict[k]["bbox"][:, 5] >= dth
+                    ]
+
+                c_vineval.predictions["annotations"] = c_vineval.gen_predictions(
+                    temp_dict
+                )
+                c_eval = c_vineval.evaluate()
+                c_AP, _ = c_eval.stats
+                dths_aps.append(c_AP)
+
+            max_idx = np.argmax(dths_aps)
+            max_AP = dths_aps[max_idx]
+            max_dth = dths[max_idx]
+            cls_th_combi.append([max_dth, max_AP])
+
+        return cls_th_combi

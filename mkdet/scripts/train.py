@@ -157,10 +157,6 @@ class Trainer(object):
             closses_tot += closs * len(data["fp"])
             nums_tot += len(data["fp"])
 
-            # loss = loss.detach().item()
-            # dloss = dloss.detach().item()
-            # closs = closs.detach().item()
-
             take_time = utils.convert_time(time.time() - self.start_time)
 
             self.txt_logger.write(
@@ -217,8 +213,10 @@ class Trainer(object):
         self.tb_writer.write_scalars({"closs": {"t closs": avg_closs}}, self.epoch)
 
         # Do Validation
-        if self.epoch > self.cfgs["meta"]["val"]["ignore_epoch"]:
-
+        do_val = (self.epoch > self.cfgs["meta"]["val"]["ignore_epoch"]) and (
+            self.epoch % self.cfgs["meta"]["val"]["interval_epoch"] == 0
+        )
+        if do_val:
             val_record, val_viz = self.validator.do_validate(self.model)
             self.tot_val_record[str(self.epoch + 1)] = val_record
             val_best = val_record[self.cfgs["meta"]["val"]["best"]]
@@ -226,11 +224,11 @@ class Trainer(object):
             # Save Model
             select_metric = self.cfgs["meta"]["val"]["best"]
             val_improved = False
-            if select_metric == 'mAP':
+            if select_metric == "mAP":
                 if val_best >= self.tot_val_record["best"][select_metric]:
                     val_improved = True
 
-            if select_metric == 'loss':
+            elif select_metric == "loss":
                 if val_best < self.tot_val_record["best"][select_metric]:
                     val_improved = True
 
@@ -276,12 +274,6 @@ class Trainer(object):
                 self.txt_logger.write(f"{v:.4f} ")
             self.txt_logger.write("\n")
 
-            # for k in ["det_recl", "det_prec", "det_fppi", "det_f1"]:
-            #     self.txt_logger.write(f"{k}: ")
-            #     for v in val_record[k]:
-            #         self.txt_logger.write(f"{v:.2f} ")
-            #     self.txt_logger.write("\n")
-
             self.txt_logger.write(f"mAP: {val_record['mAP']:.4f}")
             self.txt_logger.write("\n")
             self.txt_logger.write(
@@ -302,18 +294,6 @@ class Trainer(object):
             self.tb_writer.write_scalars(
                 {"mAP": {"mAP": val_record["mAP"]}}, self.epoch
             )
-
-            # self.tb_writer.add_scalar("mAP", val_record["mAP"], self.epoch)
-            # metric_keys = ["det_recl", "det_prec", "det_fppi", "det_f1"]
-            # self.tb_writer.write_scalars(
-            #     {
-            #         "metrics": {
-            #             "{}".format(key): val_record[key][:-1].mean()
-            #             for key in metric_keys
-            #         }
-            #     },
-            #     self.epoch,
-            # )
 
             if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
                 metric_keys = ["cls_auc", "cls_sens", "cls_spec"]

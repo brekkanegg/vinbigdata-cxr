@@ -40,7 +40,7 @@ train:
   display_interval: 4
 val:
   ignore_epoch: 5
-  val_interval: 5
+  interval_epoch: 5
   best: mAP
   use_classifier: True
   cls_th: 0.5   # use classifier case

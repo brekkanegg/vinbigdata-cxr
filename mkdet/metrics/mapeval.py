@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
+import time
+import json
+from collections import defaultdict
 
 """
 modify to dictionary format
@@ -55,17 +58,17 @@ class MyCOCOeval(COCOeval):
 
                 # cacluate AP(average precision) for each category
                 aps = []
-                num_classes = 15
+                num_classes = s.shape[2]  # 15
                 avg_ap = 0.0
                 if ap == 1:
                     for i in range(0, num_classes):
                         i_ap = np.mean(s[:, :, i, :])
                         aps.append(i_ap)
-                        print("category : {0} : {1}".format(i, i_ap))
+                        # print("category : {0} : {1}".format(i, i_ap))
                         avg_ap += np.mean(s[:, :, i, :])
-                    print("(all categories) mAP : {}".format(avg_ap / num_classes))
+                    # print("(all categories) mAP : {}".format(avg_ap / num_classes))
 
-            print(iStr.format(titleStr, typeStr, iouStr, areaRng, maxDets, mean_s))
+            # print(iStr.format(titleStr, typeStr, iouStr, areaRng, maxDets, mean_s))
             return mean_s, aps
 
         def _summarizeDets():
@@ -162,18 +165,18 @@ class VinBigDataEval:
         # print("Generating image data...")
         results = []
 
-        for idx, image_id in enumerate(self.image_ids):
+        for idx, img_id in enumerate(self.image_ids):
 
             # Add image identification.
             results.append(
                 {
-                    "id": idx,
+                    "id": img_id,
                 }
             )
 
         return results
 
-    def gen_annotations(self, target_cat=None):
+    def gen_annotations(self):  # , target_cat=None):
         # print("Generating annotation data...")
         k = 0
         results = []
@@ -183,15 +186,15 @@ class VinBigDataEval:
             for bbox in img_info["bbox"]:
                 # bbox: x_min, y_min, x_max, y_max, cat
                 cat_id = bbox[4]
-                if target_cat is not None:
-                    if target_cat != int(cat_id):
-                        continue
+                # if target_cat is not None:
+                #     if target_cat != int(cat_id):
+                #         continue
 
                 x_min, y_min, x_max, y_max = bbox[:4]
                 results.append(
                     {
                         "id": k,
-                        "image_id": idx,
+                        "image_id": img_id,
                         "category_id": int(cat_id),
                         "bbox": np.array([x_min, y_min, x_max, y_max]),
                         "segmentation": [],
@@ -205,7 +208,7 @@ class VinBigDataEval:
 
         return results
 
-    def gen_predictions(self, pred_dict, target_cat=None):
+    def gen_predictions(self, pred_dict):  # target_cat=None):
         # print("Generating prediction data...")
         k = 0
         results = []
@@ -214,15 +217,15 @@ class VinBigDataEval:
             img_info = pred_dict[img_id]
             for bbox in img_info["bbox"]:
                 cat_id = bbox[4]
-                if target_cat is not None:
-                    if target_cat != int(cat_id):
-                        continue
+                # if target_cat is not None:
+                #     if target_cat != int(cat_id):
+                #         continue
 
                 x_min, y_min, x_max, y_max = bbox[:4]
                 results.append(
                     {
                         "id": k,
-                        "image_id": idx,
+                        "image_id": img_id,
                         "category_id": int(cat_id),
                         "bbox": np.array([x_min, y_min, x_max, y_max]),
                         "segmentation": [],
@@ -237,7 +240,7 @@ class VinBigDataEval:
 
         return results
 
-    def evaluate(self, pred_dict, n_imgs=-1):
+    def evaluate(self, n_imgs=-1):
         if self.predictions["annotations"] is None:
             raise ("Please do .gen_predicitons() first!")
 
