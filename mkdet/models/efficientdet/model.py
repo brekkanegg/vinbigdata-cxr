@@ -12,6 +12,7 @@ import numpy as np
 
 # from torchvision.ops import nms
 # from torchvision.ops import batched_nms
+import time
 
 # from efficientnet_pytorch import EfficientNet  # outdated
 import timm
@@ -124,6 +125,8 @@ class EfficientDet(nn.Module):
         transformed_anchors = self.regressBoxes(anchors, regression)
         transformed_anchors = self.clipBoxes(transformed_anchors, inputs)
 
+        t0 = time.time()
+
         preds = {}
         if nms_fn == "naive":
             scores, scores_class = torch.max(classification, dim=2, keepdim=True)
@@ -165,7 +168,7 @@ class EfficientDet(nn.Module):
                     dim=1,
                 )
 
-            return preds
+            # return preds
 
         elif nms_fn == "svcat":
             # FIXME: 클래스별로 normlaized threshold 가 필요할 수도 있다
@@ -194,11 +197,13 @@ class EfficientDet(nn.Module):
                     bic_scores = classification[bi, bic_scores_over_thresh, c]
 
                     # bi_classes = scores_class[bi, bi_scores_over_thresh, 0]
+                    t1 = time.time()
                     bic_anchors_nms_idx = torchvision.ops.nms(
                         boxes=bic_transformed_anchors,
                         scores=bic_scores,
                         iou_threshold=nms_iou,
                     )
+                    # print(time.time() - t1)
                     if bic_anchors_nms_idx.shape[0] > max_det:
                         bic_anchors_nms_idx = bic_anchors_nms_idx[:max_det]
 
@@ -219,7 +224,7 @@ class EfficientDet(nn.Module):
 
                 preds[bi] = torch.cat(preds[bi], dim=0)
 
-            return preds
+            # return preds
 
         elif nms_fn == "wbf":
             # FIXME: 클래스별로 normlaized threshold 가 필요할 수도 있다
@@ -254,45 +259,55 @@ class EfficientDet(nn.Module):
                     # bi_classes = scores_class[bi, bi_scores_over_thresh, 0]
                     bic_classes = np.ones(bic_scores.shape[0]).astype(np.int) * c
 
-                    bi_bboxes += bic_transformed_anchors.tolist()
-                    bi_scores += bic_scores.tolist()
-                    bi_classes += bic_classes.tolist()
+                    # bi_bboxes += bic_transformed_anchors.tolist()
+                    # bi_scores += bic_scores.tolist()
+                    # bi_classes += bic_classes.tolist()
+                    t1 = time.time()
+                    (
+                        bic_nms_bbox,
+                        bic_nms_score,
+                        bic_nms_class,
+                    ) = ensemble_boxes.weighted_boxes_fusion(
+                        [bic_transformed_anchors.tolist()],
+                        [bic_scores.tolist()],
+                        [bic_classes.tolist()],
+                        weights=None,
+                        iou_thr=nms_iou,
+                        skip_box_thr=det_th,
+                    )
+                    # print(time.time() - t1)
 
-                (
-                    bi_nms_bbox,
-                    bi_nms_score,
-                    bi_nms_class,
-                ) = ensemble_boxes.weighted_boxes_fusion(
-                    [bi_bboxes],
-                    [bi_scores],
-                    [bi_classes],
-                    weights=None,
-                    iou_thr=nms_iou,
-                    skip_box_thr=det_th,
-                )
+                    if bic_nms_score.shape[0] > max_det:
+                        bic_nms_bbox = bic_nms_bbox[:max_det]
+                        bic_nms_score = bic_nms_score[:max_det]
+                        bic_nms_class = bic_nms_class[:max_det]
 
-                bi_nms_bbox = torch.from_numpy(bi_nms_bbox)
-                bi_nms_score = torch.from_numpy(bi_nms_score)
-                bi_nms_class = torch.from_numpy(bi_nms_class)
+                    if len(bic_nms_bbox) > 0:
+                        bi_bboxes += bic_nms_bbox.tolist()
+                        bi_scores += bic_nms_score.tolist()
+                        bi_classes += bic_nms_class.tolist()
 
-                if bi_nms_score.shape[0] > max_det:
-                    bi_nms_bbox = bi_nms_bbox[:max_det]
-                    bi_nms_score = bi_nms_score[:max_det]
-                    bi_nms_class = bi_nms_class[:max_det]
+                bi_bboxes = torch.tensor(bi_bboxes)
+                bi_scores = torch.tensor(bi_scores)
+                bi_classes = torch.tensor(bi_classes)
 
                 preds[bi] = torch.cat(
                     (
-                        bi_nms_bbox,
-                        bi_nms_class.unsqueeze(-1),
-                        bi_nms_score.unsqueeze(-1),
+                        bi_bboxes,
+                        bi_classes.unsqueeze(-1),
+                        bi_scores.unsqueeze(-1),
                     ),
                     dim=1,
                 )
 
-            return preds
+            # return preds
 
         else:
             raise
+
+        # print(time.time() - t0)
+
+        return preds
 
     def _init_weights(self):
         for m in self.modules():
