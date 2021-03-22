@@ -274,6 +274,8 @@ class Validator(object):
             return val_record, val_viz
 
     def cls_th_search(self):
+        dths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
+
         cls_th_combi = []
         for c in tqdm(range(14)):
             c_vineval = copy.deepcopy(self.vineval)
@@ -298,7 +300,6 @@ class Validator(object):
                 ]
 
             dths_aps = []
-            dths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
             for dth in dths:
                 for k in self.pred_dict.keys():
                     temp_dict[k]["bbox"] = temp_dict[k]["bbox"][

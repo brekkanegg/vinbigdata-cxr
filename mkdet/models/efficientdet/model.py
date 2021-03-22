@@ -237,6 +237,10 @@ class EfficientDet(nn.Module):
 
                 # bi_transformed_anchors = transformed_anchors[bi, :, :]
                 preds[bi] = []
+
+                bi_bboxes = []
+                bi_scores = []
+                bi_classes = []
                 for c in range(scores_over_thresh.shape[2]):
                     bic_scores_over_thresh = bi_scores_over_thresh[:, c]
                     if torch.sum(bic_scores_over_thresh) == 0:
@@ -250,40 +254,40 @@ class EfficientDet(nn.Module):
                     # bi_classes = scores_class[bi, bi_scores_over_thresh, 0]
                     bic_classes = np.ones(bic_scores.shape[0]).astype(np.int) * c
 
+                    bi_bboxes += bic_transformed_anchors.tolist()
+                    bi_scores += bic_scores.tolist()
+                    bi_classes += bic_classes.tolist()
+
+                (
+                    bi_nms_bbox,
+                    bi_nms_score,
+                    bi_nms_class,
+                ) = ensemble_boxes.weighted_boxes_fusion(
+                    [bi_bboxes],
+                    [bi_scores],
+                    [bi_classes],
+                    weights=None,
+                    iou_thr=nms_iou,
+                    skip_box_thr=det_th,
+                )
+
+                bi_nms_bbox = torch.from_numpy(bi_nms_bbox)
+                bi_nms_score = torch.from_numpy(bi_nms_score)
+                bi_nms_class = torch.from_numpy(bi_nms_class)
+
+                if bi_nms_score.shape[0] > max_det:
+                    bi_nms_bbox = bi_nms_bbox[:max_det]
+                    bi_nms_score = bi_nms_score[:max_det]
+                    bi_nms_class = bi_nms_class[:max_det]
+
+                preds[bi] = torch.cat(
                     (
-                        bic_nms_bbox,
-                        bic_nms_score,
-                        bic_nms_class,
-                    ) = ensemble_boxes.weighted_boxes_fusion(
-                        [bic_transformed_anchors.tolist()],
-                        [bic_scores.tolist()],
-                        [bic_classes.tolist()],
-                        weights=None,
-                        iou_thr=nms_iou,
-                        skip_box_thr=det_th,
-                    )
-
-                    bic_nms_bbox = torch.from_numpy(bic_nms_bbox)
-                    bic_nms_score = torch.from_numpy(bic_nms_score)
-                    bic_nms_class = torch.from_numpy(bic_nms_class)
-
-                    if bic_nms_score.shape[0] > max_det:
-                        bic_nms_bbox = bic_nms_bbox[:max_det]
-                        bic_nms_score = bic_nms_score[:max_det]
-                        bic_nms_class = bic_nms_class[:max_det]
-
-                    preds[bi].append(
-                        torch.cat(
-                            (
-                                bic_nms_bbox,
-                                bic_nms_class.unsqueeze(-1),
-                                bic_nms_score.unsqueeze(-1),
-                            ),
-                            dim=1,
-                        )
-                    )
-
-                preds[bi] = torch.cat(preds[bi], dim=0)
+                        bi_nms_bbox,
+                        bi_nms_class.unsqueeze(-1),
+                        bi_nms_score.unsqueeze(-1),
+                    ),
+                    dim=1,
+                )
 
             return preds
 

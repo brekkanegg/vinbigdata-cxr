@@ -39,7 +39,7 @@ train:
   endurance: 25
   display_interval: 4
 val:
-  ignore_epoch: 5
+  ignore_epoch: 30
   interval_epoch: 5
   best: mAP
   use_classifier: True
