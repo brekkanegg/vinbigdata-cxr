@@ -5,7 +5,7 @@ model:
   old: False
   feat_start_layer: 1
   max_det: 10
-  det_th: 0.1
+  det_th: 0.01
   nms_iou: 0.15
   nms_fn: svcat
 opts:
@@ -45,7 +45,7 @@ val:
   use_classifier: True
   cls_th: 0.5   # use classifier case
   save_png: False
-  clsth_search: False
+  clsth_search: True
 test: 
   # prob_th: 0.1  # inference 
   cls_th: 0.5  # use classifier case
