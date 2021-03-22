@@ -117,6 +117,7 @@ class EfficientDet(nn.Module):
 
     def detect(self, inputs, anchors, regression, classification):
 
+        ims = inputs.shape[2]
         det_th = self.cfgs["meta"]["model"]["det_th"]
         max_det = self.cfgs["meta"]["model"]["max_det"]
         nms_fn = self.cfgs["meta"]["model"]["nms_fn"]
@@ -268,7 +269,7 @@ class EfficientDet(nn.Module):
                         bic_nms_score,
                         bic_nms_class,
                     ) = ensemble_boxes.weighted_boxes_fusion(
-                        [bic_transformed_anchors.tolist()],
+                        [(bic_transformed_anchors / ims).tolist()],
                         [bic_scores.tolist()],
                         [bic_classes.tolist()],
                         weights=None,
@@ -283,7 +284,7 @@ class EfficientDet(nn.Module):
                         bic_nms_class = bic_nms_class[:max_det]
 
                     if len(bic_nms_bbox) > 0:
-                        bi_bboxes += bic_nms_bbox.tolist()
+                        bi_bboxes += (bic_nms_bbox * ims).tolist()
                         bi_scores += bic_nms_score.tolist()
                         bi_classes += bic_nms_class.tolist()
 

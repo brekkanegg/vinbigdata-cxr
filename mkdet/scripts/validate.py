@@ -274,7 +274,8 @@ class Validator(object):
             return val_record, val_viz
 
     def cls_th_search(self):
-        dths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
+        # dths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
+        dths = [0.01, 0.025, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
 
         cls_th_combi = []
         for c in tqdm(range(14)):
@@ -301,21 +302,97 @@ class Validator(object):
 
             dths_aps = []
             for dth in dths:
+                temp_dict2 = copy.deepcopy(temp_dict)
                 for k in self.pred_dict.keys():
-                    temp_dict[k]["bbox"] = temp_dict[k]["bbox"][
-                        temp_dict[k]["bbox"][:, 5] >= dth
+                    temp_dict2[k]["bbox"] = temp_dict2[k]["bbox"][
+                        temp_dict2[k]["bbox"][:, 5] >= dth
                     ]
-
                 c_vineval.predictions["annotations"] = c_vineval.gen_predictions(
-                    temp_dict
+                    temp_dict2
                 )
                 c_eval = c_vineval.evaluate()
                 c_AP, _ = c_eval.stats
                 dths_aps.append(c_AP)
 
+            # print(dths_aps)
             max_idx = np.argmax(dths_aps)
             max_AP = dths_aps[max_idx]
             max_dth = dths[max_idx]
             cls_th_combi.append([max_dth, max_AP])
 
         return cls_th_combi
+
+
+# 0. image classifier 의 값이 0.003751 이하면 prediction 없음
+# 0-1. 위가 0.003751 이하이어도 bbox score가 0.95 이상이면 사용
+# 1. 0:Aortic Enlargment, 3:Cardiomegaly 는 이미지당 한 개만
+# 2. 11:Pleural_thickening 의 경우는 0.015 이상만
+# 3. 9:Other_lesion 의 경우는 0.1 이상
+# 4. 레이블 고려해서 nms 사용(iou_th=0.4)
+# 4-1. 2:calcification, 11-pleural thicknening 은 iou_th=0.001
+
+# for box_id in range(len(detect_result) // 6)[::-1]:
+#     label, *box, score = detect_result[6 * box_id : 6 * box_id + 6]
+#     if class_labels.item() >= self.config.classification_thresh:
+#         if (
+#             (score > self.config.score_last)  # 0
+#             and not (label in [0, 3] and label in list_label)
+#             and not (
+#                 label == 11 and score < self.config.score_11
+#             )  # pleural thickening, 0.015
+#             and not (label == 9 and score < self.config.score_9)  # other-lesion 0.1
+#         ):
+#             list_label.append(label)
+#             box = label_resize(self.config.img_size, img_size, *box)
+#             result_one_image.append(int(label))
+#             result_one_image.append(np.round(score, 3))
+#             result_one_image.extend([int(i) for i in box])
+
+#         else:
+#             if (
+#                 score > self.config.score_last2  # 0.95
+#                 and not (label in [0, 3] and label in list_label)
+#                 and not (label == 11 and score < self.config.score_11)
+#                 and not (label == 9 and score < self.config.score_9)
+#             ):
+#                 list_label.append(label)
+#                 box = label_resize(self.config.img_size, img_size, *box)
+#                 result_one_image.append(int(label))
+#                 result_one_image.append(np.round(score, 3))
+#                 result_one_image.extend([int(i) for i in box])
+
+
+# def label_process(self, detect_result, iou_thresh, iou_thresh11):
+#     assert detect_result != ""
+#     x_center, y_center = detect_result[1::6], detect_result[2::6]
+#     w_center, h_center = detect_result[3::6], detect_result[4::6]
+#     detect_result[1::6] = [i - 0.5 * j for i, j in zip(x_center, w_center)]
+#     detect_result[2::6] = [i - 0.5 * j for i, j in zip(y_center, h_center)]
+#     detect_result[3::6] = [i + 0.5 * j for i, j in zip(x_center, w_center)]
+#     detect_result[4::6] = [i + 0.5 * j for i, j in zip(y_center, h_center)]
+#     list_new = []
+
+#     for label_values in np.unique(detect_result[::6]):
+#         list_values = np.array(
+#             [
+#                 detect_result[6 * idx : 6 * idx + 6]
+#                 for idx, i in enumerate(detect_result[::6])
+#                 if i == label_values
+#             ]
+#         )
+#         boxes = list_values[:, 1:5].tolist()
+#         scores = list_values[:, 5].tolist()
+#         labels = list_values[:, 0].tolist()
+#         if label_values in [2, 11]:
+#             boxes, scores, labels = nms(
+#                 [boxes], [scores], [labels], weights=None, iou_thr=iou_thresh11  # 0.001
+#             )
+#         else:
+#             boxes, scores, labels = nms(
+#                 [boxes], [scores], [labels], weights=None, iou_thr=iou_thresh  # 0.4
+#             )
+
+#         for box in list_values:
+#             if box[-1] in scores:
+#                 list_new.extend(box)
+#     return list_new
