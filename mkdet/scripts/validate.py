@@ -147,6 +147,7 @@ class Validator(object):
                 img = data["img"].permute(0, 3, 1, 2).to(self.device)
 
                 logits = self.model(img, mode="val")
+
                 dloss, closs = opts.calc_loss(self.cfgs, self.device, data, logits)
                 loss = dloss + self.cfgs["meta"]["loss"]["cls_weight"] * closs
 

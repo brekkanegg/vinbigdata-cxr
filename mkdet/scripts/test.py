@@ -166,6 +166,12 @@ class Testor(object):
             len(submit_csv[submit_csv["PredictionString"] == "14 1 0 0 1 1"]),
         )
 
+        if self.cfgs["meta"]["test"]["add_14"]:
+            for i in range(len(submit_csv)):
+                row = submit_csv.loc[i]
+                if submit_csv["PredictionString"] != "14 1 0 0 1 1":
+                    submit_csv.loc[i, "PredictionString"] += " 14 1 0 0 1 1"
+
         submit_dir = os.path.join(
             self.cfgs_test["submit_dir"], f"{submit_name}_submit.csv"
         )

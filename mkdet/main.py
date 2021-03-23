@@ -43,6 +43,22 @@ def main(cfgs: DictConfig):
 
         Testor(cfgs).do_test()
 
+    elif cfgs["run"] == "train_cls":
+        from scripts.train_cls import Trainer
+
+        Trainer(cfgs).do_train()
+
+    elif cfgs["run"] == "val_cls":
+        from scripts.validate_cls import Validator
+
+        Validator(cfgs).do_validate()
+
+    # TODO:
+    # elif cfgs["run"] == "testcls":  # submission file 만들기
+    #     from scripts.testcls import Testor
+
+    #     Testor(cfgs).do_test()
+
 
 if __name__ == "__main__":
     main()

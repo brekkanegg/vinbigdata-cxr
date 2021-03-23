@@ -17,7 +17,6 @@ from torch.utils.data import DataLoader
 
 
 from . import augmentations
-from . import nms
 
 
 FINDINGS = [
@@ -90,20 +89,9 @@ def collater(data):
 
     fps = [s["fp"] for s in data]
     imgs = torch.tensor([s["img"] for s in data])
-    bboxes = [s["bbox"] for s in data]
-    max_num_bboxes = max(bbox.shape[0] for bbox in bboxes)
+    labels = torch.tensor([s["label"] for s in data])
 
-    if max_num_bboxes > 0:
-        bboxes_padded = torch.ones((len(bboxes), max_num_bboxes, 5)) * -1
-
-        if max_num_bboxes > 0:
-            for idx, bbox in enumerate(bboxes):
-                if bbox.shape[0] > 0:
-                    bboxes_padded[idx, : bbox.shape[0], :] = torch.tensor(bbox)
-    else:
-        bboxes_padded = torch.ones((len(bboxes), 1, 5)) * -1
-
-    return {"fp": fps, "img": imgs, "bbox": bboxes_padded}
+    return {"fp": fps, "img": imgs, "label": labels}
 
 
 def collater_test(data):
@@ -137,7 +125,6 @@ class VIN(Dataset):
                         self.pids
                     )
 
-            self.nms_fn = getattr(nms, self.cfgs["meta"]["inputs"]["nms_fn"])
         else:
             with open(self.data_dir + "/test_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
@@ -227,7 +214,6 @@ class VIN(Dataset):
             pid = self.pids[index]
 
         ims = self.inputs_cfgs["image_size"]
-        nms_iou = self.inputs_cfgs["nms_iou"]
 
         if self.cfgs["run"] != "test":
             file_path = self.data_dir + f"/train/{pid}.png"
@@ -263,13 +249,7 @@ class VIN(Dataset):
             data["img"] = img
 
         else:
-            bboxes_coord = []
-            bboxes_cat = []
-            bboxes_rad = []
-
             pid_info = self.meta_dict[pid]
-            pid_dimy = pid_info["dim0"]
-            pid_dimx = pid_info["dim1"]
 
             pid_bbox = np.array(pid_info["bbox"])
             # pid_bbox order: rad_id, finding, finding_id, bbox(x_min, y_min, x_max, y_max) - xyxy가로, 세로
@@ -279,64 +259,19 @@ class VIN(Dataset):
             # CHECK if two not found exists
             # Normal
             if (pid_label == "14").all():
-                bboxes = np.ones((1, 5)) * -1
-                if self.transform is not None:
-                    augmented = self.transform(img)
-                    img = augmented["image"]
+                label = [self.cfgs["meta"]["inputs"]["label_smooth"]]
 
             else:
-                for bi, bb in enumerate(pid_bbox):
-                    bx0, by0, bx1, by1 = [float(i) for i in bb[-4:]]
-                    blabel = int(bb[2])
-                    brad = int(pid_rad[bi])
+                label = [1 - self.cfgs["meta"]["inputs"]["label_smooth"]]
 
-                    if blabel == 14:
-                        continue
-
-                    if (bx0 >= bx1) or (by0 >= by1):
-                        continue
-                    else:
-                        # Resize
-                        temp_bb = [None, None, None, None]
-                        temp_bb[0] = np.round(bx0 / pid_dimx * ims)
-                        temp_bb[1] = np.round(by0 / pid_dimy * ims)
-                        temp_bb[2] = np.round(bx1 / pid_dimx * ims)
-                        temp_bb[3] = np.round(by1 / pid_dimy * ims)
-
-                        bboxes_coord.append(temp_bb)
-                        bboxes_cat.append(blabel)
-                        bboxes_rad.append(brad)
-
-                # NOTE: Simple NMS for multi-labeler case
-                if len(bboxes_coord) >= 2:  # ("cst" in mask_path[0]) and
-
-                    bboxes_coord, bboxes_cat = self.nms_fn(
-                        bboxes_coord,
-                        bboxes_cat,
-                        bboxes_rad,
-                        nms_iou=nms_iou,
-                        image_size=ims,
-                    )
-
-                img_anns = {
-                    "image": img,
-                    "bboxes": bboxes_coord,
-                    "category_id": bboxes_cat,
-                }
-
-                if self.transform is not None:
-                    img_anns = self.transform(**img_anns)
-
-                img = img_anns["image"]
-                bboxes = img_anns["bboxes"]
-                cats = img_anns["category_id"]
-                bboxes = [list(b) + [c] for (b, c) in zip(bboxes, cats)]
-                bboxes = np.array(bboxes)
+            if self.transform is not None:
+                augmented = self.transform(img)
+                img = augmented["image"]
 
             data = {}
             data["fp"] = pid
             data["img"] = img
-            data["bbox"] = bboxes
+            data["label"] = label
 
         return data
 
