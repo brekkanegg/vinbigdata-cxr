@@ -79,9 +79,8 @@ class Validator(object):
             pid_rad = pid_bbox[:, 0]
 
             if self.cfgs["meta"]["inputs"]["cat"] is not None:
-                cat_idx = [
-                    True if i == str(self.cat_id) else False for i in pid_bbox[:, 2]
-                ]
+                cid = self.cfgs["meta"]["inputs"]["cat"]
+                cat_idx = [True if i == cid else False for i in pid_bbox[:, 2]]
                 pid_bbox = pid_bbox[cat_idx]
                 pid_label = pid_label[cat_idx]
                 pid_rad = pid_rad[cat_idx]
