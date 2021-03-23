@@ -127,11 +127,12 @@ class Validator(object):
 
         if self.gt_dict is None:
             self.gt_dict = self.get_gt_dict()
-            self.vineval = VinBigDataEval(self.gt_dict)
             if self.cfgs["meta"]["inputs"]["cat"] is not None:
-                self.vineval.annotations["categories"] = self.vineval.gen_categories(
-                    self.cfgs["meta"]["inputs"]["cat"]
+                self.vineval = VinBigDataEval(
+                    self.gt_dict, cat=self.cfgs["meta"]["inputs"]["cat"]
                 )
+            else:
+                self.vineval = VinBigDataEval(self.gt_dict)
 
         self.pred_dict = {}
 

@@ -108,12 +108,13 @@ class VinBigDataEval:
 
     """
 
-    def __init__(self, true_dict, verbosity=0):
+    def __init__(self, true_dict, cat=None, verbosity=0):
 
         self.true_dict = true_dict
 
         self.image_ids = sorted(true_dict.keys())
 
+        self.cat = cat
         self.annotations = {
             "type": "instances",
             "images": self.gen_images(),
@@ -129,7 +130,7 @@ class VinBigDataEval:
 
         self.verbosity = verbosity
 
-    def gen_categories(self, cat=None):
+    def gen_categories(self):
         # print("Generating category data...")
 
         cats = [
@@ -150,8 +151,8 @@ class VinBigDataEval:
             "No finding",  ### 14 2121
         ]
 
-        if cat is not None:
-            cats = [cats[cat]]
+        if self.cat is not None:
+            cats = [cats[self.cat]]
 
         results = []
 
@@ -191,9 +192,11 @@ class VinBigDataEval:
             for bbox in img_info["bbox"]:
                 # bbox: x_min, y_min, x_max, y_max, cat
                 cat_id = bbox[4]
-                # if target_cat is not None:
-                #     if target_cat != int(cat_id):
-                #         continue
+                if self.cat is not None:
+                    if int(cat_id) != self.cat:
+                        continue
+                    else:
+                        cat_id = 0
 
                 x_min, y_min, x_max, y_max = bbox[:4]
                 results.append(
@@ -222,9 +225,11 @@ class VinBigDataEval:
             img_info = pred_dict[img_id]
             for bbox in img_info["bbox"]:
                 cat_id = bbox[4]
-                # if target_cat is not None:
-                #     if target_cat != int(cat_id):
-                #         continue
+                if self.cat is not None:
+                    if int(cat_id) != self.cat:
+                        continue
+                    else:
+                        cat_id = 0
 
                 x_min, y_min, x_max, y_max = bbox[:4]
                 results.append(
