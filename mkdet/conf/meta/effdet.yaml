@@ -29,7 +29,7 @@ inputs:
   nms_fn: wbf
   nms_iou: 0.15
   abnormal_only: False
-  # label: vin
+  cat: Null
 train:
   posneg_ratio: 1 #Null
   load_ckpt: Null

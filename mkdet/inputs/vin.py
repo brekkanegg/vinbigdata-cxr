@@ -136,6 +136,11 @@ class VIN(Dataset):
                     self.abnormal_pids, self.normal_pids = self.split_abnormal_pids(
                         self.pids
                     )
+                    if self.cfgs["meta"]["inputs"]["cat"] is not None:
+                        self.cat_id = self.cfgs["meta"]["inputs"]["cat"]
+                        self.abnormal_pids = self.get_cat_pids(
+                            self.abnormal_pids, self.cat_id
+                        )
 
             self.nms_fn = getattr(nms, self.cfgs["meta"]["inputs"]["nms_fn"])
         else:
@@ -195,6 +200,19 @@ class VIN(Dataset):
         normal_pids = np.array(pids)[~is_abnormal].tolist()
 
         return abnormal_pids, normal_pids
+
+    def get_cat_pids(self, pids, cat_id=None):
+
+        is_cat = np.array([False] * len(pids))
+        for idx, x in enumerate(pids):
+            v = np.array(self.meta_dict[x]["bbox"])
+            v = v[v[:, 2] == str(cat_id)]
+            if len(v) > 0:
+                is_cat[idx] = True
+
+        abnormal_cat_pids = np.array(pids)[is_cat].tolist()
+
+        return abnormal_cat_pids
 
     def __len__(self):
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
@@ -278,6 +296,21 @@ class VIN(Dataset):
 
             # CHECK if two not found exists
             # Normal
+            # TODO:
+
+            if self.cfgs["meta"]["inputs"]["cat"] is not None:
+                cat_idx = [
+                    True if i == str(self.cat_id) else False for i in pid_bbox[:, 2]
+                ]
+                pid_bbox = pid_bbox[cat_idx]
+                pid_label = pid_label[cat_idx]
+                # FIXME: label should be 0, 1, 2, ... order so if num_class=1, label is 0
+                pid_label = np.array(["0" for _ in pid_label])
+                # Dummy
+                if len(pid_label) == 0:
+                    pid_label = np.array(["14", "14", "14"])
+                pid_rad = pid_rad[cat_idx]
+
             if (pid_label == "14").all():
                 bboxes = np.ones((1, 5)) * -1
                 if self.transform is not None:
@@ -287,7 +320,9 @@ class VIN(Dataset):
             else:
                 for bi, bb in enumerate(pid_bbox):
                     bx0, by0, bx1, by1 = [float(i) for i in bb[-4:]]
-                    blabel = int(bb[2])
+                    # FIXME:
+                    blabel = int(pid_label[bi])
+                    # blabel = int(bb[2])
                     brad = int(pid_rad[bi])
 
                     if blabel == 14:
@@ -309,7 +344,6 @@ class VIN(Dataset):
 
                 # NOTE: Simple NMS for multi-labeler case
                 if len(bboxes_coord) >= 2:  # ("cst" in mask_path[0]) and
-
                     bboxes_coord, bboxes_cat = self.nms_fn(
                         bboxes_coord,
                         bboxes_cat,
