@@ -76,6 +76,7 @@ class Validator(object):
             pid_dimx = pid_info["dim1"]
 
             pid_bbox = np.array(pid_info["bbox"])
+            pid_label = pid_bbox[:, 2]
             pid_rad = pid_bbox[:, 0]
 
             if self.cfgs["meta"]["inputs"]["cat"] is not None:
@@ -83,12 +84,13 @@ class Validator(object):
                 cat_idx = [True if i == cid else False for i in pid_bbox[:, 2]]
                 pid_bbox = pid_bbox[cat_idx]
                 pid_label = pid_label[cat_idx]
+                pid_label = np.array(["0" for _ in pid_label])
                 pid_rad = pid_rad[cat_idx]
 
             # pid_bbox order: rad_id, finding, finding_id, bbox(x_min, y_min, x_max, y_max) - xyxy가로, 세로
             for bi, bb in enumerate(pid_bbox):
                 bx0, by0, bx1, by1 = [float(i) for i in bb[-4:]]
-                blabel = int(bb[2])
+                blabel = int(pid_label[bi])
                 brad = int(pid_rad[bi])
                 if blabel == 14:
                     continue
@@ -126,6 +128,10 @@ class Validator(object):
         if self.gt_dict is None:
             self.gt_dict = self.get_gt_dict()
             self.vineval = VinBigDataEval(self.gt_dict)
+            if self.cfgs["meta"]["inputs"]["cat"] is not None:
+                self.vineval.annotations["categories"] = self.vineval.gen_categories(
+                    self.cfgs["meta"]["inputs"]["cat"]
+                )
 
         self.pred_dict = {}
 
@@ -183,14 +189,14 @@ class Validator(object):
                         bi_det_preds = bi_det_preds.detach().cpu().numpy()
                         bi_det_preds[:, :4] = np.round(bi_det_preds[:, :4]).astype(int)
 
-                    # if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
-                    bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
-                    # if self.cfgs_val["use_classifier"]:
-                    if bi_cls_pred < self.cfgs_val["cls_th"]:
-                        bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+                    if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+                        bi_cls_pred = torch.sigmoid(logits["aux_cls"][bi]).item()
 
-                    cls_pred_tot.append(bi_cls_pred)
-                    cls_gt_tot.append(int(len(bi_det_anns) > 0))
+                        if bi_cls_pred < self.cfgs_val["cls_th"]:
+                            bi_det_preds = np.array([[0, 0, 1, 1, 14, 1]])
+
+                        cls_pred_tot.append(bi_cls_pred)
+                        cls_gt_tot.append(int(len(bi_det_anns) > 0))
 
                     self.pred_dict[bi_fp] = {"bbox": bi_det_preds}
 
@@ -231,23 +237,24 @@ class Validator(object):
                     "ann": det_anns_viz,
                 }
 
-        cls_gt_tot = np.array(cls_gt_tot)
-        cls_pred_tot = np.array(cls_pred_tot)
-        tn, fp, fn, tp = confusion_matrix(
-            cls_gt_tot, cls_pred_tot > self.cfgs["meta"]["val"]["cls_th"]
-        ).ravel()
-        cls_sens = tp / (tp + fn + 1e-5)
-        cls_spec = tn / (tn + fp + 1e-5)
-        cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
-
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
             "dloss": (dlosses_tot / (nums_tot + 1e-5)),
             "closs": (closses_tot / (nums_tot + 1e-5)),
-            "cls_auc": cls_auc,
-            "cls_sens": cls_sens,
-            "cls_spec": cls_spec,
         }
+
+        if not self.cfgs["meta"]["inputs"]["abnormal_only"]:
+            cls_gt_tot = np.array(cls_gt_tot)
+            cls_pred_tot = np.array(cls_pred_tot)
+            tn, fp, fn, tp = confusion_matrix(
+                cls_gt_tot, cls_pred_tot > self.cfgs["meta"]["val"]["cls_th"]
+            ).ravel()
+            cls_sens = tp / (tp + fn + 1e-5)
+            cls_spec = tn / (tn + fp + 1e-5)
+            cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
+            val_record["cls_auc"] = cls_auc
+            val_record["cls_sens"] = cls_sens
+            val_record["cls_spec"] = cls_spec
 
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
             self.vineval.image_ids = sorted(self.pred_dict.keys())
@@ -281,6 +288,7 @@ class Validator(object):
         elif self.cfgs["run"] == "train":
             return val_record, val_viz
 
+    # FIXME: not working in single - label case
     def cls_th_search(self):
         # dths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
         dths = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]

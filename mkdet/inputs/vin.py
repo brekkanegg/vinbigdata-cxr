@@ -136,11 +136,10 @@ class VIN(Dataset):
                     self.abnormal_pids, self.normal_pids = self.split_abnormal_pids(
                         self.pids
                     )
+
                     if self.cfgs["meta"]["inputs"]["cat"] is not None:
-                        self.cat_id = self.cfgs["meta"]["inputs"]["cat"]
-                        self.abnormal_pids = self.get_cat_pids(
-                            self.abnormal_pids, self.cat_id
-                        )
+
+                        self.abnormal_pids = self.get_cat_pids(self.abnormal_pids)
 
             self.nms_fn = getattr(nms, self.cfgs["meta"]["inputs"]["nms_fn"])
         else:
@@ -201,8 +200,8 @@ class VIN(Dataset):
 
         return abnormal_pids, normal_pids
 
-    def get_cat_pids(self, pids, cat_id=None):
-
+    def get_cat_pids(self, pids):
+        cat_id = self.cfgs["meta"]["inputs"]["cat"]
         is_cat = np.array([False] * len(pids))
         for idx, x in enumerate(pids):
             v = np.array(self.meta_dict[x]["bbox"])
@@ -210,9 +209,9 @@ class VIN(Dataset):
             if len(v) > 0:
                 is_cat[idx] = True
 
-        abnormal_cat_pids = np.array(pids)[is_cat].tolist()
+        cat_pids = np.array(pids)[is_cat].tolist()
 
-        return abnormal_cat_pids
+        return cat_pids
 
     def __len__(self):
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
@@ -299,9 +298,8 @@ class VIN(Dataset):
             # TODO:
 
             if self.cfgs["meta"]["inputs"]["cat"] is not None:
-                cat_idx = [
-                    True if i == str(self.cat_id) else False for i in pid_bbox[:, 2]
-                ]
+                cid = self.cfgs["meta"]["inputs"]["cat"]
+                cat_idx = [True if i == str(cid) else False for i in pid_bbox[:, 2]]
                 pid_bbox = pid_bbox[cat_idx]
                 pid_label = pid_label[cat_idx]
                 # FIXME: label should be 0, 1, 2, ... order so if num_class=1, label is 0

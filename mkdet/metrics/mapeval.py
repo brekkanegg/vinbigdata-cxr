@@ -129,7 +129,7 @@ class VinBigDataEval:
 
         self.verbosity = verbosity
 
-    def gen_categories(self):
+    def gen_categories(self, cat=None):
         # print("Generating category data...")
 
         cats = [
@@ -149,6 +149,9 @@ class VinBigDataEval:
             "Pulmonary fibrosis",  ### 13 323
             "No finding",  ### 14 2121
         ]
+
+        if cat is not None:
+            cats = [cats[cat]]
 
         results = []
 

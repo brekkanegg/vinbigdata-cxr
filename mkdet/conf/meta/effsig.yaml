@@ -1,0 +1,56 @@
+# @package _group_
+meta: EffDet
+model: 
+  name: b4
+  old: False
+  feat_start_layer: 1
+  max_det: 10
+  det_th: 0.05
+  nms_iou: 0.15
+  nms_fn: svcat
+opts:
+  optimizer: adamw #adamw
+  learning_rate: 1e-3
+  beta1: 0.9
+  beta2: 0.999
+  scheduler: cosineWR #cosineWR #Null
+  warmup_epoch: 5
+  weight_decay: 5e-6
+loss:
+  cls_weight: 0.5
+  pos_th: 0.4
+  neg_th: 0.2
+inputs: 
+  image_size: 768
+  num_classes: 1
+  window: cxr
+  augment: train_multi_augment12
+  label_smooth: 0.1
+  nms_fn: wbf
+  nms_iou: 0.15
+  abnormal_only: False
+  cat: 9
+train:
+  posneg_ratio: 1 #Null
+  load_ckpt: Null
+  resume_train: False
+  max_epoch: 200
+  samples_per_epoch: Null
+  endurance: 25
+  display_interval: 4
+val:
+  ignore_epoch: 5
+  interval_epoch: 1
+  best: mAP
+  use_classifier: False
+  cls_th: 0.5   # use classifier case
+  save_png: False
+  clsth_search: False
+test: 
+  # prob_th: 0.1  # inference 
+  cls_th: 0.5  # use classifier case
+  use_classifier: True
+  best_epoch: Null
+  submit_dir: /nfs3/minki/kaggle/vinbigdata-cxr/submit
+  submit_name: Null
+  add_14: False
