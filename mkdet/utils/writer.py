@@ -19,8 +19,7 @@ class Writer(SummaryWriter):
         self.cfgs = cfgs
 
         self.label2color = {
-            class_id: [random.random() for _ in range(3)]
-            for class_id in range(self.cfgs["meta"]["inputs"]["num_classes"])
+            class_id: [random.random() for _ in range(3)] for class_id in range(15)
         }
 
     def write_scalar(self, scalar_dict, iteration):
