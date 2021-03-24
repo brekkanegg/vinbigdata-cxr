@@ -271,7 +271,7 @@ class Trainer(object):
 
             self.txt_logger.write("APs: \n")
             findings = vin.FINDINGS
-            if self.cfgs["met"]["inputs"]["cat"] is not None:
+            if self.cfgs["meta"]["inputs"]["cat"] is not None:
                 findings = [vin.FINDINGS[self["cfgs"]["inputs"]["cat"]]]
             for f in findings:
                 self.txt_logger.write(f"{f[:6]:>6} ")
