@@ -1,5 +1,5 @@
 # @package _group_
-meta: EffDet
+meta: EffSig
 model: 
   name: b4
   old: False
@@ -17,7 +17,7 @@ opts:
   warmup_epoch: 5
   weight_decay: 5e-6
 loss:
-  cls_weight: 0.5
+  cls_weight: 0.1
   pos_th: 0.4
   neg_th: 0.2
 inputs: 
@@ -29,7 +29,7 @@ inputs:
   nms_fn: wbf
   nms_iou: 0.15
   abnormal_only: False
-  cat: 9
+  cat: 11
 train:
   posneg_ratio: 1 #Null
   load_ckpt: Null

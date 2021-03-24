@@ -53,8 +53,9 @@ class MyCOCOeval(COCOeval):
                 s = s[:, :, aind, mind]
 
             if len(s[s > -1]) == 0:
-                aps = []
+
                 mean_s = -1
+                aps = []
             else:
                 mean_s = np.mean(s[s > -1])
 

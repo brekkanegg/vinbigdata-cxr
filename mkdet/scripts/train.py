@@ -65,6 +65,9 @@ class Trainer(object):
         self.grad_scaler = GradScaler(enabled=self.cfgs["use_amp"])
 
         ####### Validator
+        # if self.cfgs["meta"]["meta"] == "EffSig":
+        #     from scripts.validate_sig import Validator
+
         self.validator = Validator(self.cfgs, self.device)
         self.txt_logger.write(f"Val:  \n{len(self.validator.val_loader.dataset)}\n")
 
@@ -267,7 +270,10 @@ class Trainer(object):
                 self.txt_logger.write("\n")
 
             self.txt_logger.write("APs: \n")
-            for f in vin.FINDINGS:
+            findings = vin.FINDINGS
+            if self.cfgs["met"]["inputs"]["cat"] is not None:
+                findings = [vin.FINDINGS[self["cfgs"]["inputs"]["cat"]]]
+            for f in findings:
                 self.txt_logger.write(f"{f[:6]:>6} ")
             self.txt_logger.write("\n")
             for v in val_record["APs"]:

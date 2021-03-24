@@ -84,6 +84,7 @@ class Validator(object):
                 cat_idx = [True if i == cid else False for i in pid_bbox[:, 2]]
                 pid_bbox = pid_bbox[cat_idx]
                 pid_label = pid_label[cat_idx]
+                # FIXME: label should be 0, 1, 2, ... order so if num_class=1, label is 0
                 pid_label = np.array(["0" for _ in pid_label])
                 pid_rad = pid_rad[cat_idx]
 
@@ -292,75 +293,26 @@ class Validator(object):
     # FIXME: not working in single - label case
     def cls_th_search(self):
         # dths = [0.01, 0.02, 0.04, 0.08, 0.16, 0.24, 0.32, 0.48]
-        if self.cfgs["meta"]["inputs"]["cat"] is None:
-            dths = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+        dths = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
 
-            cls_th_combi = []
-            for c in tqdm(range(15)):
-                c_vineval = copy.deepcopy(self.vineval)
-                c_vineval.annotations["categories"] = [
-                    c_vineval.annotations["categories"][c]
+        cls_th_combi = []
+        c_vineval = copy.deepcopy(self.vineval)
+        dths_aps = []
+        for dth in dths:
+            temp_dict2 = copy.deepcopy(self.pred_dict)
+            for k in self.pred_dict.keys():
+                temp_dict2[k]["bbox"] = temp_dict2[k]["bbox"][
+                    temp_dict2[k]["bbox"][:, 5] >= dth
                 ]
-                c_vineval.annotations["annotations"] = [
-                    r
-                    for r in self.vineval.annotations["annotations"]
-                    if r["category_id"] == c
-                ]
-                c_vineval.predictions["categories"] = [
-                    c_vineval.predictions["categories"][c]
-                ]
+            c_vineval.predictions["annotations"] = c_vineval.gen_predictions(temp_dict2)
+            c_eval = c_vineval.evaluate()
+            c_AP, _ = c_eval.stats
+            dths_aps.append(c_AP)
 
-                # Threshold-wise:
-                temp_dict = copy.deepcopy(self.pred_dict)
-                # FIXME: if len 0 remove?
-                for k in self.pred_dict.keys():
-                    temp_dict[k]["bbox"] = temp_dict[k]["bbox"][
-                        temp_dict[k]["bbox"][:, 4] == c
-                    ]
-
-                dths_aps = []
-                for dth in dths:
-                    temp_dict2 = copy.deepcopy(temp_dict)
-                    for k in self.pred_dict.keys():
-                        temp_dict2[k]["bbox"] = temp_dict2[k]["bbox"][
-                            temp_dict2[k]["bbox"][:, 5] >= dth
-                        ]
-                    c_vineval.predictions["annotations"] = c_vineval.gen_predictions(
-                        temp_dict2
-                    )
-                    c_eval = c_vineval.evaluate()
-                    c_AP, _ = c_eval.stats
-                    dths_aps.append(c_AP)
-
-                # print(dths_aps)
-                max_idx = np.argmax(dths_aps)
-                max_AP = dths_aps[max_idx]
-                max_dth = dths[max_idx]
-                cls_th_combi.append([max_dth, max_AP])
-
-        else:
-            dths = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-
-            cls_th_combi = []
-            c_vineval = copy.deepcopy(self.vineval)
-            dths_aps = []
-            for dth in dths:
-                temp_dict2 = copy.deepcopy(self.pred_dict)
-                for k in self.pred_dict.keys():
-                    temp_dict2[k]["bbox"] = temp_dict2[k]["bbox"][
-                        temp_dict2[k]["bbox"][:, 5] >= dth
-                    ]
-                c_vineval.predictions["annotations"] = c_vineval.gen_predictions(
-                    temp_dict2
-                )
-                c_eval = c_vineval.evaluate()
-                c_AP, _ = c_eval.stats
-                dths_aps.append(c_AP)
-
-            # print(dths_aps)
-            max_idx = np.argmax(dths_aps)
-            max_AP = dths_aps[max_idx]
-            max_dth = dths[max_idx]
-            cls_th_combi.append([max_dth, max_AP])
+        # print(dths_aps)
+        max_idx = np.argmax(dths_aps)
+        max_AP = dths_aps[max_idx]
+        max_dth = dths[max_idx]
+        cls_th_combi.append([max_dth, max_AP])
 
         return cls_th_combi
