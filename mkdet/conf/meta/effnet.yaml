@@ -28,7 +28,7 @@ train:
 val:
   ignore_epoch: 30
   interval_epoch: 1
-  best: cls_auc
+  best: cls_sens
   cls_th: 0.5   # use classifier case
 
 test: 

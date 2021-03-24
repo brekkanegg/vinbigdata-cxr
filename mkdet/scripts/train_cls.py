@@ -69,7 +69,7 @@ class Trainer(object):
 
         ####### Setup Train
         self.epoch, self.iter, self.resume_epoch = 0, 0, 0
-        self.tot_val_record = {"best": {"loss": np.inf, "cls_auc": -1}}
+        self.tot_val_record = {"best": {"loss": np.inf, "cls_auc": -1, "cls_sens": -1}}
 
         if self.cfgs["meta"]["train"]["resume_train"]:
             with open(
