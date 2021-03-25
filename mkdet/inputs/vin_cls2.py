@@ -135,21 +135,18 @@ class VIN(Dataset):
             annotations = json.load(f)
             # print(annotations.keys())
 
-            fold_dict = {k: None for k in range(7)}
-            for fold in range(7):
-                fold_list = [x for x in annotations["fold_indicator"] if x[-1] == fold]
-                fold_dict[fold] = np.array(fold_list)[:, 0].tolist()
+        if self.mode == "train":
+            fold_list = [
+                x for x in annotations["fold_indicator"] if x[-1] != self.cfgs["fold"]
+            ]
+            pids = np.array(fold_list)[:, 0].tolist()
+        else:
+            fold_list = [
+                x for x in annotations["fold_indicator"] if x[-1] == self.cfgs["fold"]
+            ]
+            pids = np.array(fold_list)[:, 0].tolist()
 
-                train_images_lst = []
-                for k in range(7):
-                    if k != fold:
-                        train_images_lst += fold_dict[f]
-                val_images_lst = fold_dict[f]
-
-            if self.mode == "train":
-                return train_images_lst
-            elif self.mode == "val":
-                return val_images_lst
+        return pids
 
     def __len__(self):
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
