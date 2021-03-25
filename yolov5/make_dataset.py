@@ -1,7 +1,17 @@
+import os
 import pandas as pd
 from tqdm import tqdm
+import json
+import numpy as np
+from sklearn.model_selection import train_test_split
 
-DATA_DIR = "/data/minki/kaggle/vinbigdata-cxr"
+
+data_dir = input("51, 53:")
+
+if data_dir == "51":
+    DATA_DIR = "/data2/minki/kaggle/vinbigdata-cxr"
+elif data_dir == "53":
+    DATA_DIR = "/data/minki/kaggle/vinbigdata-cxr"
 
 
 def bb_iou(boxA, boxB):
@@ -147,31 +157,73 @@ for img_id in tqdm(images_lst):
     f.close()
 
 
-# Split
+# Split 5 fold
+# FIXME:
 
-import pandas as pd
-from sklearn.model_selection import train_test_split
+with open(f"{DATA_DIR}/sh_annot.json", "r") as f:
+    annotations = json.load(f)
 
-df_train = pd.read_csv(DATA_DIR + "/yolov5/new_train.csv")
-train, val = train_test_split(df_train, test_size=0.2)
-
-train_images_lst = (
-    train.groupby("image_id").apply(list).reset_index()["image_id"].tolist()
-)
-val_images_lst = val.groupby("image_id").apply(list).reset_index()["image_id"].tolist()
+fold_dict = {k: None for k in range(7)}
+for fold in range(7):
+    fold_list = [x for x in annotations["fold_indicator"] if x[-1] == fold]
+    fold_dict[fold] = np.array(fold_list)[:, 0].tolist()
 
 
 def createImagesTxt(_images, filepath):
     images_dir = DATA_DIR + "/png_1024l/train/"
     rows = []
     for img_id in _images:
-        rows.append(images_dir + img_id + ".jpg")
+        rows.append(images_dir + img_id + ".png")
     f = open(filepath, "w")
     f.write("\n".join(rows))
     f.close()
 
 
-train_path = DATA_DIR + "/train.txt"
-val_path = DATA_DIR + "/val.txt"
-createImagesTxt(train_images_lst, train_path)
-createImagesTxt(val_images_lst, val_path)
+cats = [
+    "Aortic enlargement",
+    "Atelectasis",
+    "Calcification",
+    "Cardiomegaly",
+    "Consolidation",
+    "ILD",
+    "Infiltration",
+    "Lung Opacity",
+    "Nodule/Mass",
+    "Other lesion",
+    "Pleural effusion",
+    "Pleural thickening",
+    "Pneumothorax",
+    "Pulmonary fibrosis",
+    "No finding",
+    "Finding",
+]
+
+
+os.system(f"rm -f {DATA_DIR}/yolov5/config*.yaml")
+for f in range(7):
+    train_images_lst = []
+    for k in range(7):
+        if k != fold:
+            train_images_lst += fold_dict[f]
+    val_images_lst = fold_dict[f]
+
+    train_path = DATA_DIR + f"/yolov5/train{f}.txt"
+    val_path = DATA_DIR + f"/yolov5/val{f}.txt"
+    createImagesTxt(train_images_lst, train_path)
+    createImagesTxt(val_images_lst, val_path)
+
+    os.system(
+        f'echo "train: {DATA_DIR}/yolov5/train{f}.txt" >> {DATA_DIR}/yolov5/config{f}.yaml'
+    )
+    os.system(f'echo "val: {DATA_DIR}/yolov5/val{f}.txt" >> {DATA_DIR}/yolov5/config{f}.yaml')
+    os.system(f'"nc: 16" >> {DATA_DIR}/yolov5/config{f}.yaml')
+    os.system(f'echo "names: {cats}" >> {DATA_DIR}/yolov5/config{f}.yaml')
+
+
+"""
+rm -f /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
+echo "train: /data/minki/kaggle/vinbigdata-cxr/train.txt" >> /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
+echo "val: /data/minki/kaggle/vinbigdata-cxr/val.txt" >> /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
+echo "nc: 16" >> /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
+echo "names: ['Aortic enlargement','Atelectasis','Calcification','Cardiomegaly','Consolidation','ILD','Infiltration','Lung Opacity','Nodule/Mass','Other lesion','Pleural effusion','Pleural thickening','Pneumothorax','Pulmonary fibrosis','No finding','Finding']" >> /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
+"""
