@@ -6,14 +6,6 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 
-data_dir = input("51, 53:")
-
-if data_dir == "51":
-    DATA_DIR = "/data2/minki/kaggle/vinbigdata-cxr"
-elif data_dir == "53":
-    DATA_DIR = "/data/minki/kaggle/vinbigdata-cxr"
-
-
 def bb_iou(boxA, boxB):
     # determine the (x, y)-coordinates of the intersection rectangle
     xA = max(boxA[0], boxB[0])
@@ -127,50 +119,8 @@ def averageCoordinates(df, threshold):
     return new_df
 
 
-df_train = pd.read_csv(DATA_DIR + "/train.csv")
-
-images_lst = df_train.groupby("image_id").apply(list).reset_index()["image_id"].tolist()
-images_dir = DATA_DIR + "/png_1024l/"
-
-# Add class_id=14 and class_id=15
-frames = []
-for img_id in tqdm(images_lst):
-    sub_df = df_train[df_train["image_id"] == img_id].reset_index()
-    sub_df = averageCoordinates(sub_df, 0.5)
-    frames.append(sub_df)
-    rows = []
-    if int(sub_df["class_id"][0]) == 14:
-        rows.append("14 0.5 0.5 1.0 1.0")
-    else:
-        for index, row in sub_df.iterrows():
-            w = int(row["width"])
-            h = int(row["height"])
-            cx = (int(row["x_min"]) + int(row["x_max"])) / 2 / w
-            cy = (int(row["y_min"]) + int(row["y_max"])) / 2 / h
-            bw = (int(row["x_max"]) - int(row["x_min"])) / w
-            bh = (int(row["y_max"]) - int(row["y_min"])) / h
-            row = [str(row["class_id"]), str(cx), str(cy), str(bw), str(bh)]
-            rows.append(" ".join(row))
-        rows.append("15 0.5 0.5 1.0 1.0")
-    f = open(images_dir + img_id + ".txt", "w")
-    f.write("\n".join(rows))
-    f.close()
-
-
-# Split 5 fold
-# FIXME:
-
-with open(f"{DATA_DIR}/sh_annot.json", "r") as f:
-    annotations = json.load(f)
-
-fold_dict = {k: None for k in range(7)}
-for fold in range(7):
-    fold_list = [x for x in annotations["fold_indicator"] if x[-1] == fold]
-    fold_dict[fold] = np.array(fold_list)[:, 0].tolist()
-
-
-def createImagesTxt(_images, filepath):
-    images_dir = DATA_DIR + "/png_1024l/train/"
+def createImagesTxt(_images, filepath, data_dir):
+    images_dir = data_dir + "/png_1024l/train/"
     rows = []
     for img_id in _images:
         rows.append(images_dir + img_id + ".png")
@@ -179,51 +129,94 @@ def createImagesTxt(_images, filepath):
     f.close()
 
 
-cats = [
-    "Aortic enlargement",
-    "Atelectasis",
-    "Calcification",
-    "Cardiomegaly",
-    "Consolidation",
-    "ILD",
-    "Infiltration",
-    "Lung Opacity",
-    "Nodule/Mass",
-    "Other lesion",
-    "Pleural effusion",
-    "Pleural thickening",
-    "Pneumothorax",
-    "Pulmonary fibrosis",
-    "No finding",
-    "Finding",
-]
+if __name__ == "__main__":
 
+    server = input("51, 53:")
 
-os.system(f"rm -f {DATA_DIR}/yolov5/config*.yaml")
-for f in range(7):
-    train_images_lst = []
-    for k in range(7):
-        if k != fold:
-            train_images_lst += fold_dict[f]
-    val_images_lst = fold_dict[f]
+    if server == "51":
+        DATA_DIR = "/data2/minki/kaggle/vinbigdata-cxr"
+    elif server == "53":
+        DATA_DIR = "/data/minki/kaggle/vinbigdata-cxr"
 
-    train_path = DATA_DIR + f"/yolov5/train{f}.txt"
-    val_path = DATA_DIR + f"/yolov5/val{f}.txt"
-    createImagesTxt(train_images_lst, train_path)
-    createImagesTxt(val_images_lst, val_path)
+    df_train = pd.read_csv(DATA_DIR + "/train.csv")
 
-    os.system(
-        f'echo "train: {DATA_DIR}/yolov5/train{f}.txt" >> {DATA_DIR}/yolov5/config{f}.yaml'
+    images_lst = (
+        df_train.groupby("image_id").apply(list).reset_index()["image_id"].tolist()
     )
-    os.system(f'echo "val: {DATA_DIR}/yolov5/val{f}.txt" >> {DATA_DIR}/yolov5/config{f}.yaml')
-    os.system(f'"nc: 16" >> {DATA_DIR}/yolov5/config{f}.yaml')
-    os.system(f'echo "names: {cats}" >> {DATA_DIR}/yolov5/config{f}.yaml')
+    images_dir = DATA_DIR + "/png_1024l/"
 
+    # Add class_id=14 and class_id=15
+    frames = []
+    for img_id in tqdm(images_lst):
+        sub_df = df_train[df_train["image_id"] == img_id].reset_index()
+        sub_df = averageCoordinates(sub_df, 0.5)
+        frames.append(sub_df)
+        rows = []
+        if int(sub_df["class_id"][0]) == 14:
+            rows.append("14 0.5 0.5 1.0 1.0")
+        else:
+            for index, row in sub_df.iterrows():
+                w = int(row["width"])
+                h = int(row["height"])
+                cx = (int(row["x_min"]) + int(row["x_max"])) / 2 / w
+                cy = (int(row["y_min"]) + int(row["y_max"])) / 2 / h
+                bw = (int(row["x_max"]) - int(row["x_min"])) / w
+                bh = (int(row["y_max"]) - int(row["y_min"])) / h
+                row = [str(row["class_id"]), str(cx), str(cy), str(bw), str(bh)]
+                rows.append(" ".join(row))
+            rows.append("15 0.5 0.5 1.0 1.0")
+        f = open(images_dir + img_id + ".txt", "w")
+        f.write("\n".join(rows))
+        f.close()
 
-"""
-rm -f /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
-echo "train: /data/minki/kaggle/vinbigdata-cxr/train.txt" >> /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
-echo "val: /data/minki/kaggle/vinbigdata-cxr/val.txt" >> /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
-echo "nc: 16" >> /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
-echo "names: ['Aortic enlargement','Atelectasis','Calcification','Cardiomegaly','Consolidation','ILD','Infiltration','Lung Opacity','Nodule/Mass','Other lesion','Pleural effusion','Pleural thickening','Pneumothorax','Pulmonary fibrosis','No finding','Finding']" >> /home/minki/kaggle/vinbigdata-cxr/yolov5/config.yaml
-"""
+    # Split 5 fold
+    # FIXME:
+
+    with open(f"{DATA_DIR}/sh_annot.json", "r") as f:
+        annotations = json.load(f)
+
+    fold_dict = {k: None for k in range(7)}
+    for fold in range(7):
+        fold_list = [x for x in annotations["fold_indicator"] if x[-1] == fold]
+        fold_dict[fold] = np.array(fold_list)[:, 0].tolist()
+
+    cats = [
+        "Aortic enlargement",
+        "Atelectasis",
+        "Calcification",
+        "Cardiomegaly",
+        "Consolidation",
+        "ILD",
+        "Infiltration",
+        "Lung Opacity",
+        "Nodule/Mass",
+        "Other lesion",
+        "Pleural effusion",
+        "Pleural thickening",
+        "Pneumothorax",
+        "Pulmonary fibrosis",
+        "No finding",
+        "Finding",
+    ]
+
+    os.system(f"rm -f {DATA_DIR}/yolov5/config*.yaml")
+    for f in range(7):
+        train_images_lst = []
+        for k in range(7):
+            if k != fold:
+                train_images_lst += fold_dict[f]
+        val_images_lst = fold_dict[f]
+
+        train_path = DATA_DIR + f"/yolov5/train{f}.txt"
+        val_path = DATA_DIR + f"/yolov5/val{f}.txt"
+        createImagesTxt(train_images_lst, train_path, DATA_DIR)
+        createImagesTxt(val_images_lst, val_path, DATA_DIR)
+
+        os.system(
+            f'echo "train: {DATA_DIR}/yolov5/train{f}.txt" >> {DATA_DIR}/yolov5/config{f}.yaml'
+        )
+        os.system(
+            f'echo "val: {DATA_DIR}/yolov5/val{f}.txt" >> {DATA_DIR}/yolov5/config{f}.yaml'
+        )
+        os.system(f'echo "nc: 16" >> {DATA_DIR}/yolov5/config{f}.yaml')
+        os.system(f'echo "names: {cats}" >> {DATA_DIR}/yolov5/config{f}.yaml')
