@@ -684,8 +684,14 @@ if __name__ == "__main__":
     )
     parser.add_argument("--cfg", type=str, default="", help="model.yaml path")
     parser.add_argument(
-        "--data", type=str, default="data/coco128.yaml", help="data.yaml path"
+        "--data",
+        type=str,
+        default="/data2/minki/kaggle/vinbigdata-cxr/yolov5/config0.yaml",
+        help="data.yaml path",
     )
+    parser.add_argument("--fold", type=str, default="0", help="data fold")
+
+    # "data/coco128.yaml"
     parser.add_argument(
         "--hyp", type=str, default="data/hyp.scratch.yaml", help="hyperparameters path"
     )
@@ -784,6 +790,11 @@ if __name__ == "__main__":
         help="version of dataset artifact to be used",
     )
     opt = parser.parse_args()
+
+    # FIXME:
+    if opt.fold != "0":
+        opt.data = opt.data.replace("/config0", f"/config{opt.fold}")
+        print("changing opt.data matching the fold: ", opt.data)
 
     # Set DDP variables
     opt.world_size = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
