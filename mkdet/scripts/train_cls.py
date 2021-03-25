@@ -13,7 +13,7 @@ from scripts.validate_cls import Validator
 
 import utils
 from utils import misc
-from inputs import vin_cls as vin
+from inputs import vin_cls2 as vin
 
 import timm
 

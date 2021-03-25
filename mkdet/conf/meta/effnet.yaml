@@ -1,7 +1,7 @@
 # @package _group_
 meta: EffNet
 model: 
-  name: b4
+  name: b6
 opts:
   optimizer: adamw #adamw
   learning_rate: 1e-3
@@ -14,7 +14,7 @@ loss:
 inputs: 
   image_size: 768
   num_classes: 1
-  window: cxr
+  window: imagenet
   augment: train_multi_augment12
   label_smooth: 0.1
 train:
@@ -28,9 +28,8 @@ train:
 val:
   ignore_epoch: 30
   interval_epoch: 1
-  best: cls_sens
+  best: cls_auc
   cls_th: 0.5   # use classifier case
-
 test: 
   # prob_th: 0.1  # inference 
   cls_th: 0.5  # use classifier case

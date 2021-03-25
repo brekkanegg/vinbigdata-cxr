@@ -14,7 +14,7 @@ import time
 import pickle
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from torch.utils.data import DataLoader
-
+import json
 
 from . import augmentations
 
@@ -115,9 +115,9 @@ class VIN(Dataset):
             with open(self.data_dir + "/train_meta_dict.pickle", "rb") as f:
                 self.meta_dict = pickle.load(f)
 
-            self.fold_df = self.get_fold_df()
+            # self.fold_df = self.get_fold_df()
 
-            self.pids = self.get_train_pids()
+            self.pids = self.get_pids()
 
             if self.mode == "train":
                 if self.cfgs["meta"]["train"]["posneg_ratio"] == 1:
@@ -130,66 +130,26 @@ class VIN(Dataset):
                 self.meta_dict = pickle.load(f)
             self.pids = list(self.meta_dict.keys())
 
-    def get_fold_df(self):
+    def get_pids(self):
+        with open(self.data_dir + "/sh_annot.json", "r") as f:
+            annotations = json.load(f)
+            # print(annotations.keys())
 
+            fold_dict = {k: None for k in range(7)}
+            for fold in range(7):
+                fold_list = [x for x in annotations["fold_indicator"] if x[-1] == fold]
+                fold_dict[fold] = np.array(fold_list)[:, 0].tolist()
 
-    fold_dict = {k:None for k in range(7)}
-    for fold in range(7):
-        fold_list = [x for x in annotations['fold_indicator'] if x[-1] == fold]
-        fold_dict[fold] = np.array(fold_list)[:, 0].tolist()
+                train_images_lst = []
+                for k in range(7):
+                    if k != fold:
+                        train_images_lst += fold_dict[f]
+                val_images_lst = fold_dict[f]
 
-
-        try:
-            fold_df = pd.read_csv(self.data_dir + "/fold_df.csv")
-        except FileNotFoundError:
-            print(f"Fold df in {self.data_dir} not found! Generating fold df...")
-
-            xs = np.array(list(self.meta_dict.keys()))
-            fold_df = pd.DataFrame(columns=["image_id", "fold"])
-            fold_df["image_id"] = xs
-
-            ys = []
-            for x in xs:
-                v = self.meta_dict[x]
-                temp_lbl = np.array(v["bbox"])[:, 2]
-                # temp = np.zeros((self.cfgs["meta"]["inputs"]["num_classes"]))
-                temp = np.zeros((15))
-                for i in temp_lbl:
-                    temp[int(i)] = 1
-                ys.append(temp)
-            ys = np.array(ys)
-
-            mskf = MultilabelStratifiedKFold(n_splits=5, shuffle=True, random_state=30)
-            kfold_generator = mskf.split(xs, ys)
-
-            for f in range(5):
-                train_index, val_index = next(kfold_generator)
-                fold_df.loc[val_index, "fold"] = f
-
-            fold_df.to_csv(self.data_dir + "/fold_df.csv", index=False)
-
-        return fold_df
-
-    def get_train_pids(self):
-        if self.mode == "train":
-            pids = self.fold_df[self.fold_df["fold"] != self.cfgs["fold"]]["image_id"]
-        elif self.mode == "val":
-            pids = self.fold_df[self.fold_df["fold"] == self.cfgs["fold"]]["image_id"]
-
-        return pids.tolist()
-
-    def split_abnormal_pids(self, pids):
-        is_abnormal = np.array([False] * len(pids))
-        for idx, x in enumerate(pids):
-            v = np.array(self.meta_dict[x]["bbox"])
-            v = v[v[:, 2] != "14"]
-            if len(v) > 0:
-                is_abnormal[idx] = True
-
-        abnormal_pids = np.array(pids)[is_abnormal].tolist()
-        normal_pids = np.array(pids)[~is_abnormal].tolist()
-
-        return abnormal_pids, normal_pids
+            if self.mode == "train":
+                return train_images_lst
+            elif self.mode == "val":
+                return val_images_lst
 
     def __len__(self):
         if self.cfgs["meta"]["train"]["samples_per_epoch"] is not None:
