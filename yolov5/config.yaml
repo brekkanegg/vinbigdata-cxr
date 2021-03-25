@@ -1,0 +1,4 @@
+train: /data2/minki/kaggle/vinbigdata-cxr/train.txt
+val: /data2/minki/kaggle/vinbigdata-cxr/val.txt
+nc: 16
+names: ['Aortic enlargement','Atelectasis','Calcification','Cardiomegaly','Consolidation','ILD','Infiltration','Lung Opacity','Nodule/Mass','Other lesion','Pleural effusion','Pleural thickening','Pneumothorax','Pulmonary fibrosis','No finding','Finding']

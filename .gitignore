@@ -1,3 +1,6 @@
+yolov5/runs/
+**/*.pt
+**/wandb/
 **/__pycache__/
 nohup.out
 ipynbs/
