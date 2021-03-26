@@ -31,17 +31,15 @@ def submit(opt):
     with open(opt.data_dir + "/png_1024l/test_meta_dict.pickle", "rb") as f:
         test_dict = pickle.load(f)
 
-    image_ids = []
-    PredictionStrings = []
+    # image_ids = []
+    # PredictionStrings = []
+    pred_df = []
 
-    # print(f"{opt.data_dir}/{opt.label_dir}")
-    # print(len(glob(f"{opt.data_dir}/{opt.label_dir}/*txt")))
-    test_df = pd.DataFrame(columns = ['image_id'])
-    test_df['image_id'] = list(test_dict.keys())
+    test_df = pd.DataFrame(columns=["image_id"])
+    test_df["image_id"] = list(test_dict.keys())
 
     for file_path in tqdm(glob(f"{opt.home_dir}/{opt.label_dir}/*txt")):
         image_id = file_path.split("/")[-1].split(".")[0]
-        image_ids.append(image_id)
 
         w, h = test_dict[image_id]["dim1"], test_dict[image_id]["dim0"]
         # w, h = test_df.loc[test_df.image_id==image_id,['width', 'height']].values[0]
@@ -60,24 +58,32 @@ def submit(opt):
                 1,
             ).astype(str)
         )
-        
+
         for idx in range(len(bboxes)):
             bboxes[idx] = str(int(float(bboxes[idx]))) if idx % 6 != 1 else bboxes[idx]
-            
-        if str(bboxes[0]) != "15":
-            image_ids.append(image_id)
-            if str(bboxes[0]) != "14":
-                PredictionStrings.append(" ".join(bboxes))
+
+        pred_string = ""
+        bbox_num = len(bboxes) // 6
+        for bb in range(bbox_num):
+            bb_part = bboxes[6 * bb : 6 * (bb + 1)]
+            if bb_part[0] == "15":
+                continue
+            if bb_part[0] == "14":
+                pred_string += f" 14 {bb_part[1]} 0 0 1 1"
             else:
-                PredictionStrings.append("14 1 0 0 1 1")
+                pred_string += f' {" ".join(bb_part)}'
 
+        pred_string = pred_string[1:]
+        pred_df.append([image_id, pred_string])
 
-    pred_df = pd.DataFrame(
-        {"image_id": image_ids, "PredictionString": PredictionStrings}
+    #     break
+
+    pred_df = pd.DataFrame(pred_df, columns=["image_id", "PredictionString"])
+
+    sub_df = pd.merge(test_df, pred_df, on="image_id", how="left").fillna(
+        "14 1 0 0 1 1"
     )
-    # FIXME:
-    sub_df = pd.merge(test_df, pred_df, on = 'image_id', how = 'left').fillna("14 1 0 0 1 1")
-    sub_df = pred_df.fillna("14 1 0 0 1 1")
+    sub_df = sub_df.fillna("14 1 0 0 1 1")
     sub_df = sub_df[["image_id", "PredictionString"]]
     sub_df.to_csv(opt.home_dir + "/yolov5/submission.csv", index=False)
     sub_df.tail()
