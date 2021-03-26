@@ -34,9 +34,10 @@ def submit(opt):
     image_ids = []
     PredictionStrings = []
 
-    print(len(glob(f"{opt.data_dir}/{opt.label_dir}/*txt")))
+    # print(f"{opt.data_dir}/{opt.label_dir}")
+    # print(len(glob(f"{opt.data_dir}/{opt.label_dir}/*txt")))
 
-    for file_path in tqdm(glob(f"{opt.data_dir}/{opt.label_dir}/*txt")):
+    for file_path in tqdm(glob(f"{opt.home_dir}/{opt.label_dir}/*txt")):
         image_id = file_path.split("/")[-1].split(".")[0]
         w, h = test_dict[image_id]["dim1"], test_dict[image_id]["dim0"]
         # w, h = test_df.loc[test_df.image_id==image_id,['width', 'height']].values[0]
@@ -71,7 +72,7 @@ def submit(opt):
         # sub_df = pd.merge(test_df, pred_df, on = 'image_id', how = 'left').fillna("14 1 0 0 1 1")
         sub_df = pred_df.fillna("14 1 0 0 1 1")
         sub_df = sub_df[["image_id", "PredictionString"]]
-        sub_df.to_csv(opt.data_dir + "/submission.csv", index=False)
+        sub_df.to_csv(opt.home_dir + "/submission.csv", index=False)
         sub_df.tail()
 
 
@@ -79,6 +80,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--data_dir", type=str, default="/data/minki/kaggle/vinbigdata-cxr"
+    )
+    parser.add_argument(
+        "--home_dir", type=str, default="/home/minki/kaggle/vinbigdata-cxr"
     )
     parser.add_argument(
         "--label_dir", type=str, default="yolov5/runs/detect/exp/labels"
