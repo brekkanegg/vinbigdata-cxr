@@ -28,7 +28,7 @@ def yolo2voc(image_height, image_width, bboxes):
 def submit(opt):
     # DATA_DIR = opt.data_dir
 
-    with open(opt.data_dir + "/png_1024l/test_meta.dict", "rb") as f:
+    with open(opt.data_dir + "/png_1024l/test_meta_dict.pickle", "rb") as f:
         test_dict = pickle.load(f)
 
     image_ids = []
