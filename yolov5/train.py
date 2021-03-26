@@ -756,7 +756,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--workers", type=int, default=8, help="maximum number of dataloader workers"
     )
-    parser.add_argument("--project", default="runs/train", help="save to project/name")
+    parser.add_argument(
+        "--project",
+        default="/data/minki/kaggle/vinbigdata-cxr/yolov5/runs/train",
+        help="save to project/name",
+    )
     parser.add_argument("--entity", default=None, help="W&B entity")
     parser.add_argument("--name", default="exp", help="save to project/name")
     parser.add_argument(
