@@ -195,8 +195,8 @@ if __name__ == "__main__":
         annotations = json.load(f)
 
     os.system(f"rm -f {DATA_DIR}/yolov5/config*.yaml")
+    os.system(f"rm -f {DATA_DIR}/yolov5/*.cache")
     for f in range(7):
-
         train_list = [x for x in annotations["fold_indicator"] if x[-1] != f]
         train_images_lst = np.array(train_list)[:, 0].tolist()
 

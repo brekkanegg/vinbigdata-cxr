@@ -1,3 +1,4 @@
+**/*.csv
 yolov5/runs/
 **/*.pt
 **/wandb/
