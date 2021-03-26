@@ -34,6 +34,8 @@ def submit(opt):
     image_ids = []
     PredictionStrings = []
 
+    print(len(glob(f"{opt.data_dir}/{opt.label_dir}/*txt")))
+
     for file_path in tqdm(glob(f"{opt.data_dir}/{opt.label_dir}/*txt")):
         image_id = file_path.split("/")[-1].split(".")[0]
         w, h = test_dict[image_id]["dim1"], test_dict[image_id]["dim0"]
