@@ -85,7 +85,9 @@ def submit(opt):
     )
     sub_df = sub_df.fillna("14 1 0 0 1 1")
     sub_df = sub_df[["image_id", "PredictionString"]]
-    sub_df.to_csv(opt.home_dir + "/yolov5/submission.csv", index=False)
+    sub_df.to_csv(
+        opt.data_dir + f"/yolov5/submissions/{opt.submit_name}.csv", index=False
+    )
     sub_df.tail()
 
 
@@ -100,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--label_dir", type=str, default="yolov5/runs/detect/exp/labels"
     )
-    parser.add_argument("--submit_dir", type=str, default="submission")
+    parser.add_argument("--submit_name", type=str, default="submission")
 
     opt = parser.parse_args()
     print(opt)

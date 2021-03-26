@@ -69,7 +69,9 @@ class Trainer(object):
 
         ####### Setup Train
         self.epoch, self.iter, self.resume_epoch = 0, 0, 0
-        self.tot_val_record = {"best": {"loss": np.inf, "cls_auc": -1, "cls_sens": -1}}
+        self.tot_val_record = {
+            "best": {"loss": np.inf, "cls_auc": -1, "cls_sens": -1, "fit": -1}
+        }
 
         if self.cfgs["meta"]["train"]["resume_train"]:
             with open(
@@ -180,7 +182,7 @@ class Trainer(object):
             # Save Model
             select_metric = self.cfgs["meta"]["val"]["best"]
             val_improved = False
-            if select_metric == "cls_auc":
+            if (select_metric == "cls_auc") or (select_metric == "fit"):
                 if val_best >= self.tot_val_record["best"][select_metric]:
                     val_improved = True
 
@@ -215,7 +217,7 @@ class Trainer(object):
             )
             self.txt_logger.write("\n")
 
-            for k in ["cls_auc", "cls_sens", "cls_spec"]:
+            for k in ["cls_auc", "cls_sens", "cls_spec", "fit"]:
                 self.txt_logger.write(f"{k}: {val_record[k]:.4f}  ")
             self.txt_logger.write("\n")
             self.txt_logger.write(
@@ -224,7 +226,7 @@ class Trainer(object):
             self.txt_logger.write("\n", txt_write=True)
             self.txt_logger.write("\n", txt_write=False)
 
-            metric_keys = ["cls_auc", "cls_sens", "cls_spec"]
+            metric_keys = ["cls_auc", "cls_sens", "cls_spec", "fit"]
             self.tb_writer.write_scalars(
                 {"metrics": {f"{key}": val_record[key] for key in metric_keys}},
                 self.epoch,

@@ -100,6 +100,9 @@ class Validator(object):
         cls_spec = tn / (tn + fp + 1e-5)
         cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
 
+        fit_weight = np.array([0.5, 0.1, 0.4])
+        fit = np.sum(np.array([cls_sens, cls_spec, cls_auc]) * fit_weight)
+
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
             "dloss": (dlosses_tot / (nums_tot + 1e-5)),
@@ -107,6 +110,7 @@ class Validator(object):
             "cls_auc": cls_auc,
             "cls_sens": cls_sens,
             "cls_spec": cls_spec,
+            "fit": fit
         }
 
         if self.cfgs["run"] == "val_cls":

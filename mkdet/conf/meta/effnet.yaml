@@ -4,15 +4,15 @@ model:
   name: b6
 opts:
   optimizer: adamw #adamw
-  learning_rate: 1e-3
+  learning_rate: 1e-2
   beta1: 0.9
   beta2: 0.999
   scheduler: cosineWR #cosineWR #Null
-  warmup_epoch: 5
+  warmup_epoch: 3
   weight_decay: 5e-6
 loss:
 inputs: 
-  image_size: 768
+  image_size: 1024
   num_classes: 1
   window: imagenet
   augment: train_multi_augment12
@@ -26,7 +26,7 @@ train:
   endurance: 25
   display_interval: 4
 val:
-  ignore_epoch: 30
+  ignore_epoch: 5
   interval_epoch: 1
   best: cls_auc
   cls_th: 0.5   # use classifier case
