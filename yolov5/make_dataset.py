@@ -172,14 +172,6 @@ if __name__ == "__main__":
     # Split 5 fold
     # FIXME:
 
-    with open(f"{DATA_DIR}/sh_annot.json", "r") as f:
-        annotations = json.load(f)
-
-    fold_dict = {k: None for k in range(7)}
-    for fold in range(7):
-        fold_list = [x for x in annotations["fold_indicator"] if x[-1] == fold]
-        fold_dict[fold] = np.array(fold_list)[:, 0].tolist()
-
     cats = [
         "Aortic enlargement",
         "Atelectasis",
@@ -199,13 +191,17 @@ if __name__ == "__main__":
         "Finding",
     ]
 
+    with open(f"{DATA_DIR}/sh_annot.json", "r") as f:
+        annotations = json.load(f)
+
     os.system(f"rm -f {DATA_DIR}/yolov5/config*.yaml")
     for f in range(7):
-        train_images_lst = []
-        for k in range(7):
-            if k != fold:
-                train_images_lst += fold_dict[f]
-        val_images_lst = fold_dict[f]
+
+        train_list = [x for x in annotations["fold_indicator"] if x[-1] != f]
+        train_images_lst = np.array(train_list)[:, 0].tolist()
+
+        val_list = [x for x in annotations["fold_indicator"] if x[-1] == f]
+        val_images_lst = np.array(val_list)[:, 0].tolist()
 
         train_path = DATA_DIR + f"/yolov5/train{f}.txt"
         val_path = DATA_DIR + f"/yolov5/val{f}.txt"
