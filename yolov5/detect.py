@@ -211,13 +211,13 @@ if __name__ == "__main__":
         help="source",  # "data/images"
     )  # file/folder, 0 for webcam
     parser.add_argument(
-        "--img-size", type=int, default=640, help="inference size (pixels)"
+        "--img-size", type=int, default=1024, help="inference size (pixels)"
     )
     parser.add_argument(
-        "--conf-thres", type=float, default=0.25, help="object confidence threshold"
+        "--conf-thres", type=float, default=0.007, help="object confidence threshold"
     )
     parser.add_argument(
-        "--iou-thres", type=float, default=0.45, help="IOU threshold for NMS"
+        "--iou-thres", type=float, default=0.4, help="IOU threshold for NMS"
     )
     parser.add_argument(
         "--device", default="", help="cuda device, i.e. 0 or 0,1,2,3 or cpu"
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--name",
-        default="/data/minki/kaggle/vinbigdata-cxr/yolov5/exp",
+        default="exp",
         help="save results to project/name",
     )
     parser.add_argument(

@@ -25,6 +25,9 @@ def yolo2voc(image_height, image_width, bboxes):
     return bboxes
 
 
+# TODO: apply post-process
+
+
 def submit(opt):
     # DATA_DIR = opt.data_dir
 
@@ -38,7 +41,7 @@ def submit(opt):
     test_df = pd.DataFrame(columns=["image_id"])
     test_df["image_id"] = list(test_dict.keys())
 
-    for file_path in tqdm(glob(f"{opt.home_dir}/{opt.label_dir}/*txt")):
+    for file_path in tqdm(glob(f"{opt.label_dir}/*txt")):
         image_id = file_path.split("/")[-1].split(".")[0]
 
         w, h = test_dict[image_id]["dim1"], test_dict[image_id]["dim0"]
@@ -100,7 +103,9 @@ if __name__ == "__main__":
         "--home_dir", type=str, default="/home/minki/kaggle/vinbigdata-cxr"
     )
     parser.add_argument(
-        "--label_dir", type=str, default="yolov5/runs/detect/exp/labels"
+        "--label_dir",
+        type=str,
+        default="/data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/fold0_0326/labels",
     )
     parser.add_argument("--submit_name", type=str, default="submission")
 
