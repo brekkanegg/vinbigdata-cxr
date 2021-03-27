@@ -91,7 +91,12 @@ def submit(opt):
     sub_df.to_csv(
         opt.data_dir + f"/yolov5/submissions/{opt.submit_name}.csv", index=False
     )
-    sub_df.tail()
+    print(sub_df.tail())
+
+    print("=" * 100)
+    print(
+        f"Submit file saved in opt.data_dir + /yolov5/submissions/{opt.submit_name}.csv"
+    )
 
 
 if __name__ == "__main__":
