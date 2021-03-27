@@ -99,6 +99,9 @@ class EfficientDet(nn.Module):
             aux_cls = self.aux_classifier(features[-1])
             outputs_dict["aux_cls"] = aux_cls
 
+        if mode == "test_only_class":
+            return outputs_dict
+
         outs = self.bbox_head(x_feat)
 
         classification = torch.cat([out for out in outs[0]], dim=1)

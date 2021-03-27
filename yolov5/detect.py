@@ -90,6 +90,8 @@ def detect(save_img=False):
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
+
+        # FIXME: 16bits
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
@@ -203,7 +205,10 @@ if __name__ == "__main__":
         "--weights", nargs="+", type=str, default="yolov5s.pt", help="model.pt path(s)"
     )
     parser.add_argument(
-        "--source", type=str, default="data/images", help="source"
+        "--source",
+        type=str,
+        default="/data/minki/kaggle/vinbigdata-cxr/png_1024l/test",
+        help="source",  # "data/images"
     )  # file/folder, 0 for webcam
     parser.add_argument(
         "--img-size", type=int, default=640, help="inference size (pixels)"
@@ -238,7 +243,11 @@ if __name__ == "__main__":
         default="/data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect",
         help="save results to project/name",
     )
-    parser.add_argument("--name", default="exp", help="save results to project/name")
+    parser.add_argument(
+        "--name",
+        default="/data/minki/kaggle/vinbigdata-cxr/yolov5/exp",
+        help="save results to project/name",
+    )
     parser.add_argument(
         "--exist-ok",
         action="store_true",

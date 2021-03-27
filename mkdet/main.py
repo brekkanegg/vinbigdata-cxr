@@ -53,6 +53,11 @@ def main(cfgs: DictConfig):
 
         Validator(cfgs).do_validate()
 
+    elif cfgs["run"] == "test_only_class":  # submission file 만들기
+        from scripts.test_only_class import Testor
+
+        Testor(cfgs).do_test()
+
     # TODO:
     # elif cfgs["run"] == "testcls":  # submission file 만들기
     #     from scripts.testcls import Testor

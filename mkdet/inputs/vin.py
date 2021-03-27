@@ -73,15 +73,15 @@ def get_dataloader(cfgs, mode="train"):
     )
 
     # FIXME: shuffle 을 아이디 순서 바꾸는 걸로 하는데, infinitedataloader 쓰면 처음에 define 할 때 순서가 고정인 것 같아서 일단 변경
-    # _loader = InfiniteDataLoader(
-    #     dataset=_dataset,
-    #     batch_size=cfgs["batch_size"],
-    #     num_workers=cfgs["num_workers"],
-    #     pin_memory=True,
-    #     drop_last=False,
-    #     collate_fn=collate_fn,
-    #     sampler=None,
-    # )
+    #     _loader = InfiniteDataLoader(
+    #         dataset=_dataset,
+    #         batch_size=cfgs["batch_size"],
+    #         num_workers=cfgs["num_workers"],
+    #         pin_memory=True,
+    #         drop_last=False,
+    #         collate_fn=collate_fn,
+    #         sampler=None,
+    #     )
 
     return _loader
 
@@ -233,6 +233,7 @@ class VIN(Dataset):
         """
         Resize -> Windowing -> Augmentation
         """
+        t0 = time.time()
 
         pid = self.pids[index]
         if (self.mode == "train") and (self.cfgs["meta"]["train"]["posneg_ratio"] == 1):
@@ -246,13 +247,15 @@ class VIN(Dataset):
         ims = self.inputs_cfgs["image_size"]
         nms_iou = self.inputs_cfgs["nms_iou"]
 
-        if self.cfgs["run"] != "test":
-            file_path = self.data_dir + f"/train/{pid}.png"
-        else:
+        if self.cfgs["run"].startswith("test"):
             file_path = self.data_dir + f"/test/{pid}.png"
-
+        else:
+            file_path = self.data_dir + f"/train/{pid}.png"
         img = cv2.imread(file_path, -1)
         # img = img.astype(np.float32)
+
+        # t1 = time.time()
+        # print("read time:", t1 - t0)
 
         if img.shape[1] != self.inputs_cfgs["image_size"]:
             if self.data_dir.endswith("png_1024"):
@@ -261,9 +264,15 @@ class VIN(Dataset):
                 interpolation = cv2.INTER_LANCZOS4
             img = cv2.resize(img, (ims, ims), interpolation=interpolation)
 
+            # t2 = time.time()
+            # print("resize time:", t2 - t1)
+
         # FIXME: concat and windowing
 
         img = self.windowing(img)
+
+        # t3 = time.time()
+        # print("windowing time:", t3 - t2)
 
         # if self.cfgs["meta"]["inputs"]["window"] == "cxr":
         # img = np.concatenate((img[np.newaxis, :, :],) * 3, axis=0)
@@ -274,7 +283,7 @@ class VIN(Dataset):
 
         img = img.astype(np.float32)
 
-        if self.cfgs["run"] == "test":
+        if self.cfgs["run"].startswith("test"):
             data = {}
             data["fp"] = pid
             data["img"] = img
