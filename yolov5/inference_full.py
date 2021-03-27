@@ -2,7 +2,6 @@ import os
 
 project_name = input("project_name: ")
 gpu = input("Gpu: ")
-submit_name = input("Submit name: ")
 
 # 1. detect
 os.system(
@@ -16,5 +15,5 @@ os.system(
 
 # 3. make submit file
 os.system(
-    f"python submit.py --label_dir /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/{project_name}/labels_post --submit_name {submit_name}"
+    f"python submit.py --label_dir /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/{project_name}/labels_post --submit_name {project_name}_post"
 )
