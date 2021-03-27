@@ -204,13 +204,14 @@ if __name__ == "__main__":
     )
 
     opt = parser.parse_args()
+
+    print('Reading ', opt.src)
+    print('Outputs to ', opt.dst)
+
     global RULEOUT_VERBOSE
     RULEOUT_VERBOSE = 1 if opt.verbose else 0
     target_labels = glob(f"{opt.src}/*.txt")
-
-    # if opt.dst is None:
-    #     opt.dst = opt.src + "_post"
-
+    
     path_to_revised = opt.dst
     os.makedirs(opt.dst, exist_ok=False)
 
