@@ -5,7 +5,7 @@ gpu = input("Gpu: ")
 
 # 1. detect
 os.system(
-    f"python detect.py --img 1024 --weights /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/train/{project_name}/weights/best.pt --device {gpu} --name {project_name} --iou-thres 0.4 --conf-thres 0.007 --save-txt --save-conf --exist-ok"
+    f"python detect.py --img 1024 --weights /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/train/{project_name}/weights/best.pt --device {gpu} --name {project_name} --iou-thres 0.4 --conf-thres 0.007 --save-txt --save-conf"
 )
 
 # 2. apply post process

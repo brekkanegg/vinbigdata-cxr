@@ -54,12 +54,9 @@ def submit(opt):
         )
         data = data[:, [0, 5, 1, 2, 3, 4]]
         bboxes = list(
-            np.round(
-                np.concatenate(
-                    (data[:, :2], np.round(yolo2voc(h, w, data[:, 2:]))), axis=1
-                ).reshape(-1),
-                1,
-            ).astype(str)
+            np.concatenate((data[:, :2], np.round(yolo2voc(h, w, data[:, 2:]))), axis=1)
+            .reshape(-1)
+            .astype(str)
         )
 
         for idx in range(len(bboxes)):
