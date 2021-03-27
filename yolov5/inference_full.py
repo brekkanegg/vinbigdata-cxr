@@ -1,7 +1,8 @@
 import os
 
-project_name = input("project_name:")
-gpu = input("gpu")
+project_name = input("project_name: ")
+gpu = input("Gpu: ")
+submit_name = input("Submit name: ")
 
 # 1. detect
 os.system(
@@ -10,10 +11,10 @@ os.system(
 
 # 2. apply post process
 os.system(
-    f"python apply_postprocess.py --src /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/{project_name}/labels --src /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/{project_name}/labels_post"
+    f"python apply_postprocess.py --src /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/{project_name}/labels --dst /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/{project_name}/labels_post"
 )
 
 # 3. make submit file
 os.system(
-    f"python submit.py --label_dir /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/{project_name}/labels_post"
+    f"python submit.py --label_dir /data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/{project_name}/labels_post --submit_name {submit_name}"
 )

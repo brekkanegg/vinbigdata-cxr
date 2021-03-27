@@ -195,7 +195,7 @@ def apply_classwise_wbf(strings, cids=["10", "11", "13"], iou_thrs=[0.15, 0.15, 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--src", type=str, required=True)
-    parser.add_argument("--dst", type=str, default=None)
+    parser.add_argument("--dst", type=str, required=True)
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument(
         "--lungseg_dir",
@@ -208,8 +208,9 @@ if __name__ == "__main__":
     RULEOUT_VERBOSE = 1 if opt.verbose else 0
     target_labels = glob(f"{opt.src}/*.txt")
 
-    if opt.dst is None:
-        opt.dst = opt.src + "_post"
+    # if opt.dst is None:
+    #     opt.dst = opt.src + "_post"
+
     path_to_revised = opt.dst
     os.makedirs(opt.dst, exist_ok=False)
 
