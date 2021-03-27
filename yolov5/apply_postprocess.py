@@ -48,7 +48,7 @@ def lungseg_filtering(strings, uid, vote=False, dilation=True):
         )
 
     except Exception as e:
-        print(e)
+        print(e, LUNGSEG_DIR + f"/{uid}_abdomen.png")
         return strings, [], None
 
 
@@ -195,7 +195,7 @@ def apply_classwise_wbf(strings, cids=["10", "11", "13"], iou_thrs=[0.15, 0.15, 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--src", type=str, required=True)
-    parser.add_argument("--dst", type=str, required=True)
+    parser.add_argument("--dst", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument(
         "--lungseg_dir",
@@ -207,6 +207,9 @@ if __name__ == "__main__":
     global RULEOUT_VERBOSE
     RULEOUT_VERBOSE = 1 if opt.verbose else 0
     target_labels = glob(f"{opt.src}/*.txt")
+
+    if opt.dst is None:
+        opt.dst = opt.src + "_post"
     path_to_revised = opt.dst
     os.makedirs(opt.dst, exist_ok=False)
 
@@ -223,9 +226,7 @@ if __name__ == "__main__":
             strings = [x.replace("\n", "").split(" ") for x in strings]
         bef_seg = len(strings)
         if seg_out:
-            strings, segout, segmap = lungseg_filtering(
-                strings, uid, False, True
-            )
+            strings, segout, segmap = lungseg_filtering(strings, uid, False, True)
             nb_segout += len(segout)
 
         aft_seg = len(strings)
@@ -260,7 +261,8 @@ if __name__ == "__main__":
         )
 
     print("=" * 100)
-    print("total_bboxes    :", nb_boxes)
     print("total_segout    :", nb_segout)
     print("total_ruledout  :", nb_ruledout)
     print("total_wbfeffect :", nb_wbfeffect)
+    print("=" * 100)
+    print("final_bboxes    :", nb_boxes)

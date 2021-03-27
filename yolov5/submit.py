@@ -99,15 +99,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data_dir", type=str, default="/data/minki/kaggle/vinbigdata-cxr"
     )
-    parser.add_argument(
-        "--home_dir", type=str, default="/home/minki/kaggle/vinbigdata-cxr"
-    )
+
     parser.add_argument(
         "--label_dir",
         type=str,
         default="/data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/fold0_0326/labels",
     )
-    parser.add_argument("--submit_name", type=str, default="submission")
+    parser.add_argument("--submit_name", type=str, required=True)
 
     opt = parser.parse_args()
     print(opt)
