@@ -29,7 +29,6 @@ def yolo2voc(image_height, image_width, bboxes):
 
 
 def submit(opt):
-    # DATA_DIR = opt.data_dir
 
     with open(opt.data_dir + "/png_1024l/test_meta_dict.pickle", "rb") as f:
         test_dict = pickle.load(f)
@@ -41,7 +40,11 @@ def submit(opt):
     test_df = pd.DataFrame(columns=["image_id"])
     test_df["image_id"] = list(test_dict.keys())
 
-    for file_path in tqdm(glob(f"{opt.label_dir}/*txt")):
+    txt_files = glob(f"{opt.label_dir}/*txt")
+    if len(txt_files) == 0:
+        raise ("No txt files, check label dir")
+
+    for file_path in tqdm(txt_files):
         image_id = file_path.split("/")[-1].split(".")[0]
 
         w, h = test_dict[image_id]["dim1"], test_dict[image_id]["dim0"]
@@ -86,13 +89,14 @@ def submit(opt):
     sub_df = sub_df.fillna("14 1 0 0 1 1")
     sub_df = sub_df[["image_id", "PredictionString"]]
     sub_df.to_csv(
-        opt.data_dir + f"/yolov5/submissions/{opt.submit_name}.csv", index=False
+        f"/nfs3/minki/kaggle/vinbigdata-cxr/yolov5/submissions/{opt.submit_name}.csv",
+        index=False,
     )
     print(sub_df.tail())
 
     print("=" * 100)
     print(
-        f"Submit file saved in opt.data_dir + /yolov5/submissions/{opt.submit_name}.csv"
+        f"Submit file saved in /nfs3/minki/kaggle/vinbigdata-cxr/yolov5/submissions/{opt.submit_name}.csv"
     )
 
 
@@ -111,5 +115,8 @@ if __name__ == "__main__":
 
     opt = parser.parse_args()
     print(opt)
+
+    print("Making outputs from: ", opt.label_dir)
+    print("Submit Name : ", opt.submit_name)
 
     submit(opt)
