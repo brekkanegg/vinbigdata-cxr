@@ -5,14 +5,14 @@ import time
 from copy import deepcopy
 from tqdm import tqdm
 from pprint import pprint
+
 from ensemble_boxes import weighted_boxes_fusion
 from glob import glob
 
 
 def lungseg_filtering(strings, uid, vote=False):
+
     try:
-        lungseg_dir = "/data/minki/kaggle/vinbigdata-cxr/final_segmap"
-        # lungseg_dir = "/data2/jryoungw/vinbigdata_cxr/final_segmap"
         lungseg = cv2.imread(lungseg_dir + f"/{uid}_abdomen.png") // 255
         flags = [True] * len(strings)
         for idx, string in enumerate(strings):
@@ -171,14 +171,19 @@ def apply_classwise_wbf(strings, cids=["10", "11", "13"], iou_thrs=[0.15, 0.15, 
         boxes = np.array([x[1:5] for x in clswise_annot], np.float32)
         lbls = np.array([cid] * len(clswise_annot))
         scores = np.array([x[5:] for x in clswise_annot], np.float32)
+
         boxes = _centroid2xyxy(boxes)
         boxes, scores, lbls = weighted_boxes_fusion(
-            [boxes], [scores], [lbls], iou_thr=iou_thr, allows_overflow=True
-        )
+            [boxes], [scores], [lbls], iou_thr=iou_thr
+        )  # , conf_type="box_and_model_avg")
+
         boxes = _xyxy2centroid(boxes)
         aft_wbf = np.concatenate(
             [lbls[:, np.newaxis], boxes, scores[:, np.newaxis]], axis=-1
         )
+        if (scores > 1).any():
+            raise ("score larger than 1")
+
         for each_str in aft_wbf:
             dontcare += [
                 "{} {:.6f} {:.6f} {:.6f} {:.6f} {:.6f}".format(
@@ -193,6 +198,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--src", type=str, required=True)
     parser.add_argument("--dst", type=str, required=True)
+    parser.add_argument("--server", type=str, default="53")
     parser.add_argument("--wbf_all", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     opt = parser.parse_args()
@@ -224,6 +230,12 @@ if __name__ == "__main__":
     pprint(opt)
     for cid, iou_thr in zip(cids, iou_thrs):
         print(cid, ":", iou_thr)
+
+    global lungseg_dir
+    if opt.server == "53":
+        lungseg_dir = "/data/minki/kaggle/vinbigdata-cxr/final_segmap"
+    elif opt.server == "51":
+        lungseg_dir = "/data2/jryoungw/vinbigdata_cxr/final_segmap"
 
     print()
     time.sleep(1)

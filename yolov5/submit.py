@@ -28,6 +28,14 @@ def yolo2voc(image_height, image_width, bboxes):
 # TODO: apply post-process
 
 
+def push(bbox, cats=None, n=30):
+    # " label score 0 0 1 1"
+    if int(bbox[0]) in cats:
+        bbox[1] = str(np.power(float(bbox[1]), n / 100))
+
+    return bbox
+
+
 def submit(opt):
 
     with open(opt.data_dir + "/png_1024l/test_meta_dict.pickle", "rb") as f:
@@ -74,6 +82,9 @@ def submit(opt):
             if bb_part[0] == "14":
                 pred_string += f" 14 {bb_part[1]} 0 0 1 1"
             else:
+                if opt.push:
+                    bb_part = push(bb_part, cats=[10, 11, 13])
+
                 pred_string += f' {" ".join(bb_part)}'
 
         pred_string = pred_string[1:]
@@ -102,10 +113,8 @@ def submit(opt):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--data_dir", type=str, default="/data/minki/kaggle/vinbigdata-cxr"
-    )
-
+    parser.add_argument("--server", type=str, default="53")
+    parser.add_argument("--push", action="store_true")
     parser.add_argument(
         "--label_dir",
         type=str,
@@ -114,6 +123,12 @@ if __name__ == "__main__":
     parser.add_argument("--submit_name", type=str, required=True)
 
     opt = parser.parse_args()
+
+    if opt.server == "53":
+        opt.data_dir = "/data/minki/kaggle/vinbigdata-cxr"
+    elif opt.server == "51":
+        opt.data_dir = "/data2/minki/kaggle/vinbigdata-cxr"
+
     print(opt)
 
     print("Making outputs from: ", opt.label_dir)
