@@ -710,7 +710,7 @@ if __name__ == "__main__":
         "--img-size",
         nargs="+",
         type=int,
-        default=[640, 640],
+        default=[1024, 1024],
         help="[train, test] image sizes",
     )
     parser.add_argument("--rect", action="store_true", help="rectangular training")

@@ -450,9 +450,8 @@ if __name__ == "__main__":
         help="0..6 data folds",
     )  # 'data/coco128.yaml'
 
-
     parser.add_argument(
-        "--batch-size", type=int, default=128, help="size of each image batch"
+        "--batch-size", type=int, default=32, help="size of each image batch"
     )
     parser.add_argument(
         "--img-size", type=int, default=1024, help="inference size (pixels)"
@@ -508,10 +507,9 @@ if __name__ == "__main__":
 
     opt = parser.parse_args()
     opt.save_json |= opt.data.endswith("coco.yaml")
-    
-    # FIXME:
-    opt.data = f'{opt.data}/config{opt.fold}.yaml'
 
+    # FIXME:
+    opt.data = f"{opt.data}/config{opt.fold}.yaml"
 
     opt.data = check_file(opt.data)  # check file
     print(opt)

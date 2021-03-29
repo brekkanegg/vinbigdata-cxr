@@ -60,13 +60,13 @@ def nms_naive(bboxes_coord, bboxes_cat, bboxes_rad=None, iou_th=0.4, image_size=
 
     for i in range(len(order) - 1):
         for j in range(i + 1, len(order)):
-            ov = check_overlap(bboxes_coord[order[i]], bboxes_coord[order[j]])
+            # ov = check_overlap(bboxes_coord[order[i]], bboxes_coord[order[j]])
+            # if ov > iou_th:
+            #     keep[order[j]] = False
+            # else:
+            ov = calc_iou(bboxes_coord[order[i]], bboxes_coord[order[j]])
             if ov > iou_th:
                 keep[order[j]] = False
-            else:
-                ov = calc_iou(bboxes_coord[order[i]], bboxes_coord[order[j]])
-                if ov > iou_th:
-                    keep[order[j]] = False
 
     bboxes_coord = [bb for (idx, bb) in enumerate(bboxes_coord) if keep[idx]]
     bboxes_cat = [bb for (idx, bb) in enumerate(bboxes_cat) if keep[idx]]

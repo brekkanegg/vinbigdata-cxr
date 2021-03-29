@@ -9,7 +9,7 @@ import pickle
 def yolo2voc(image_height, image_width, bboxes):
     """
     yolo => [xmid, ymid, w, h] (normalized)
-    voc  => [x1, y1, x2, y1]
+    voc  => [x1, y1, x2, y2]
 
     """
     bboxes = bboxes.copy().astype(
@@ -28,12 +28,12 @@ def yolo2voc(image_height, image_width, bboxes):
 # TODO: apply post-process
 
 
-def push(bbox, cats=None, n=30):
-    # " label score 0 0 1 1"
-    if int(bbox[0]) in cats:
-        bbox[1] = str(np.power(float(bbox[1]), n / 100))
+# def push(bbox, cats=None, n=30):
+#     # " label score 0 0 1 1"
+#     if int(bbox[0]) in cats:
+#         bbox[1] = str(np.power(float(bbox[1]), n / 100))
 
-    return bbox
+#     return bbox
 
 
 def submit(opt):
