@@ -179,7 +179,7 @@ def test(
                 iou_thres=iou_thres,
                 labels=lb,
                 multi_label=True,
-                # merge=opt.merge,
+                merge=opt.merge,
             )
             t1 += time_synchronized() - t
 
@@ -438,14 +438,24 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data",
         type=str,
-        default="/data/minki/kaggle/vinbigdata-cxr/yolov5/config0.yaml",
+        default="/data/minki/kaggle/vinbigdata-cxr/yolov5",
         help="*.data path",
     )  # 'data/coco128.yaml'
+
+    # FIXME:
     parser.add_argument(
-        "--batch-size", type=int, default=32, help="size of each image batch"
+        "--fold",
+        type=str,
+        required=True,
+        help="0..6 data folds",
+    )  # 'data/coco128.yaml'
+
+
+    parser.add_argument(
+        "--batch-size", type=int, default=128, help="size of each image batch"
     )
     parser.add_argument(
-        "--img-size", type=int, default=640, help="inference size (pixels)"
+        "--img-size", type=int, default=1024, help="inference size (pixels)"
     )
     parser.add_argument(
         "--conf-thres", type=float, default=0.007, help="object confidence threshold"
@@ -490,14 +500,19 @@ if __name__ == "__main__":
         help="existing project/name ok, do not increment",
     )
 
-    # parser.add_argument(
-    #     "--merge",
-    #     action="store_true",
-    #     help="nms + wbf",
-    # )
+    parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="nms + wbf",
+    )
 
     opt = parser.parse_args()
     opt.save_json |= opt.data.endswith("coco.yaml")
+    
+    # FIXME:
+    opt.data = f'{opt.data}/config{opt.fold}.yaml'
+
+
     opt.data = check_file(opt.data)  # check file
     print(opt)
     check_requirements()
