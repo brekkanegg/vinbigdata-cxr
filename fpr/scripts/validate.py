@@ -34,7 +34,7 @@ class Validator(object):
         mname = self.cfgs["meta"]["model"]["name"]
 
         model = timm.create_model(
-            f"tf_efficientnet_{mname}_ns", pretrained=False, num_classes=1
+            f"tf_efficientnet_{mname}_ns", pretrained=True, num_classes=1
         )
 
         self.device = torch.device(f"cuda:{self.cfgs['local_rank']}")
