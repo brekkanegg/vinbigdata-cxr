@@ -179,6 +179,7 @@ def test(
                 iou_thres=iou_thres,
                 labels=lb,
                 multi_label=True,
+                # merge=opt.merge,
             )
             t1 += time_synchronized() - t
 
@@ -488,6 +489,13 @@ if __name__ == "__main__":
         action="store_true",
         help="existing project/name ok, do not increment",
     )
+
+    # parser.add_argument(
+    #     "--merge",
+    #     action="store_true",
+    #     help="nms + wbf",
+    # )
+
     opt = parser.parse_args()
     opt.save_json |= opt.data.endswith("coco.yaml")
     opt.data = check_file(opt.data)  # check file

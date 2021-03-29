@@ -107,6 +107,7 @@ def detect(save_img=False):
             opt.iou_thres,
             classes=opt.classes,
             agnostic=opt.agnostic_nms,
+            # merge=opt.merge
         )
         t2 = time_synchronized()
 
@@ -253,6 +254,13 @@ if __name__ == "__main__":
         action="store_true",
         help="existing project/name ok, do not increment",
     )
+
+    # parser.add_argument(
+    #     "--merge",
+    #     action="store_true",
+    #     help="nms + wbf",
+    # )
+
     opt = parser.parse_args()
     print(opt)
     check_requirements(exclude=("pycocotools", "thop"))
