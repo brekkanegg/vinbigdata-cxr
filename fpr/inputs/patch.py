@@ -99,13 +99,13 @@ class PATCH(Dataset):
         fps = glob.glob(self.data_dir + f"/patch_256/{self.label}/*_fp_*.png")
         gts = glob.glob(self.data_dir + f"/patch_256/{self.label}/*_gt_*.png")
 
-        random.shuffle(fps)
-        random.shuffle(gts)
-        train_fps, val_fps = fps[: int(len(fps) * 0.9)], fps[int(len(fps) * 0.9) :]
-        train_gts, val_gts = fps[: int(len(gts) * 0.9)], fps[int(len(gts) * 0.9) :]
+        # random.shuffle(fps)
+        # random.shuffle(gts)
+        # train_fps, val_fps = fps[: int(len(fps) * 0.9)], fps[int(len(fps) * 0.9) :]
+        # train_gts, val_gts = gts[: int(len(gts) * 0.9)], gts[int(len(gts) * 0.9) :]
 
-        # train_fps, val_fps = train_test_split(fps, test_size=0.1)
-        # train_gts, val_gts = train_test_split(gts, test_size=0.1)
+        train_fps, val_fps = train_test_split(fps, test_size=0.1)
+        train_gts, val_gts = train_test_split(gts, test_size=0.1)
         if self.mode == "train":
             self.fps, self.gts = train_fps, train_gts
 
