@@ -700,7 +700,10 @@ if __name__ == "__main__":
 
     # "data/coco128.yaml"
     parser.add_argument(
-        "--hyp", type=str, default="data/hyp.scratch.yaml", help="hyperparameters path"
+        "--hyp",
+        type=str,
+        default="data/hyp.scratch_tune.yaml",
+        help="hyperparameters path",
     )
     parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument(
