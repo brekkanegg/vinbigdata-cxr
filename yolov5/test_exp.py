@@ -188,17 +188,17 @@ def test(
         # Statistics per image
         for si, pred in enumerate(out):
 
-            # FIXME: apply conf_floor
-            pred = pred[pred[:, -1] == opt.target_label]
-            pred[:, -2][pred[:, -2] > opt.conf_floor] = 0.999
-
-            ##############
-
             labels = targets[targets[:, 0] == si, 1:]
             nl = len(labels)
             tcls = labels[:, 0].tolist() if nl else []  # target class
             path = Path(paths[si])
             seen += 1
+
+            # FIXME: apply conf_floor
+            pred = pred[pred[:, -1] == opt.target_label]
+            pred[:, -2][pred[:, -2] > opt.conf_floor] = 0.999
+
+            ##############
 
             if len(pred) == 0:
                 if nl:

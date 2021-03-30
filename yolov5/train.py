@@ -216,38 +216,40 @@ def train(hyp, opt, device, tb_writer=None):
 
     # Resume
     start_epoch, best_fitness = 0, 0.0
-    if pretrained:
-        # Optimizer
-        if ckpt["optimizer"] is not None:
-            optimizer.load_state_dict(ckpt["optimizer"])
-            best_fitness = ckpt["best_fitness"]
 
-        # EMA
-        if ema and ckpt.get("ema"):
-            ema.ema.load_state_dict(ckpt["ema"].float().state_dict())
-            ema.updates = ckpt["updates"]
+    # FIXME:
+    # if pretrained:
+    #     # Optimizer
+    #     if ckpt["optimizer"] is not None:
+    #         optimizer.load_state_dict(ckpt["optimizer"])
+    #         best_fitness = ckpt["best_fitness"]
 
-        # Results
-        if ckpt.get("training_results") is not None:
-            results_file.write_text(ckpt["training_results"])  # write results.txt
+    #     # EMA
+    #     if ema and ckpt.get("ema"):
+    #         ema.ema.load_state_dict(ckpt["ema"].float().state_dict())
+    #         ema.updates = ckpt["updates"]
 
-        # Epochs
-        start_epoch = ckpt["epoch"] + 1
-        if opt.resume:
-            assert (
-                start_epoch > 0
-            ), "%s training to %g epochs is finished, nothing to resume." % (
-                weights,
-                epochs,
-            )
-        if epochs < start_epoch:
-            logger.info(
-                "%s has been trained for %g epochs. Fine-tuning for %g additional epochs."
-                % (weights, ckpt["epoch"], epochs)
-            )
-            epochs += ckpt["epoch"]  # finetune additional epochs
+    #     # Results
+    #     if ckpt.get("training_results") is not None:
+    #         results_file.write_text(ckpt["training_results"])  # write results.txt
 
-        del ckpt, state_dict
+    #     # Epochs
+    #     start_epoch = ckpt["epoch"] + 1
+    #     if opt.resume:
+    #         assert (
+    #             start_epoch > 0
+    #         ), "%s training to %g epochs is finished, nothing to resume." % (
+    #             weights,
+    #             epochs,
+    #         )
+    #     if epochs < start_epoch:
+    #         logger.info(
+    #             "%s has been trained for %g epochs. Fine-tuning for %g additional epochs."
+    #             % (weights, ckpt["epoch"], epochs)
+    #         )
+    #         epochs += ckpt["epoch"]  # finetune additional epochs
+
+    del ckpt, state_dict
 
     # Image sizes
     gs = max(int(model.stride.max()), 32)  # grid size (max stride)

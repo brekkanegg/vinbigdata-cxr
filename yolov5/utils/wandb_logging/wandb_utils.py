@@ -72,13 +72,11 @@ class WandbLogger:
                     name=name,
                     job_type=job_type,
                     id=run_id,
+                    allow_val_change=True,  # FIXME:
                 )
                 if not wandb.run
                 else wandb.run
             )
-            # FIXME:
-            self.wandb_run.config.update(opt, allow_val_change=True)
-            # FIXME:
             if self.job_type == "Training":
                 if not opt.resume:
                     wandb_data_dict = (
