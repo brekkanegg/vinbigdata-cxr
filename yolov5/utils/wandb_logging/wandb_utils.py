@@ -77,7 +77,7 @@ class WandbLogger:
                 else wandb.run
             )
             # FIXME:
-            self.wandb_run.config.update(allow_val=True)
+            self.wandb_run.config.update(allow_val_change=True)
             # FIXME:
             if self.job_type == "Training":
                 if not opt.resume:
