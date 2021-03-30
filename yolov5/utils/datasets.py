@@ -129,6 +129,8 @@ def create_dataloader(
     dataloader = loader(
         dataset,
         batch_size=batch_size,
+        shuffle=True,
+        # FIXME:
         num_workers=nw,
         sampler=sampler,
         pin_memory=True,

@@ -183,8 +183,17 @@ def test(
             )
             t1 += time_synchronized() - t
 
+        # out: [n,6] (xyxy, conf, label)
+
         # Statistics per image
         for si, pred in enumerate(out):
+
+            # FIXME: apply conf_floor
+            pred = pred[pred[:, -1] == opt.target_label]
+            pred[:, -2][pred[:, -2] > opt.conf_floor] = 0.999
+
+            ##############
+
             labels = targets[targets[:, 0] == si, 1:]
             nl = len(labels)
             tcls = labels[:, 0].tolist() if nl else []  # target class
@@ -443,6 +452,19 @@ if __name__ == "__main__":
     )  # 'data/coco128.yaml'
 
     # FIXME:
+    parser.add_argument(
+        "--target_label",
+        type=int,
+        required=True,
+        help="target label index to control",
+    )  # 'data/coco128.yaml'
+
+    parser.add_argument(
+        "--conf_floor",
+        type=float,
+        help="if more than floor conf go to 0.99",
+    )  # 'data/coco128.yaml'
+
     parser.add_argument(
         "--fold",
         type=str,
