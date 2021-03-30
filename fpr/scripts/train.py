@@ -208,10 +208,12 @@ class Trainer(object):
                 self.endurance = 0
 
                 prth = pd.DataFrame(columns=["precision", "recall", "threshold"])
-                prth["precision"] = val_record["precision"]
-                prth["recall"] = val_record["recall"]
+                prth["precision"] = val_record["precision"][:-1]
+                prth["recall"] = val_record["recall"][:-1]
                 prth["threshold"] = val_record["threshold"]
-                prth.to_csv(f'{self.cfgs["save_dir"]}/prth_df.csv', index=None)
+                prth.to_csv(
+                    f'{self.cfgs["save_dir"]}/prth_{self.epoch}.csv', index=None
+                )
 
             else:
                 self.endurance += 1
