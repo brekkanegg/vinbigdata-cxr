@@ -686,17 +686,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data",
         type=str,
-        default="/data/minki/kaggle/vinbigdata-cxr/yolov5",
+        default="/data/minki/kaggle/vinbigdata-cxr/yolov5/config0.yaml",
         help="*.data path",
     )  # 'data/coco128.yaml'
 
-    # FIXME:
-    parser.add_argument(
-        "--fold",
-        type=str,
-        required=True,
-        help="0..6 data folds",
-    )  # 'data/coco128.yaml'
+    # # FIXME:
+    # parser.add_argument(
+    #     "--fold",
+    #     type=str,
+    #     required=True,
+    #     help="0..6 data folds",
+    # )  # 'data/coco128.yaml'
 
     # "data/coco128.yaml"
     parser.add_argument(
@@ -806,7 +806,7 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # FIXME:
-    opt.data = f"{opt.data}/config{opt.fold}.yaml"
+    # opt.data = f"{opt.data}/config{opt.fold}.yaml"
 
     # Set DDP variables
     opt.world_size = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
@@ -987,5 +987,5 @@ if __name__ == "__main__":
         plot_evolution(yaml_file)
         print(
             f"Hyperparameter evolution complete. Best results saved as: {yaml_file}\n"
-            f"Command to train a new model with these hyperparameters: $ python train.py --hyp {yaml_file}"
+            f"Command to train a new model with these hyperparameters: $ python train.py --hyp {yaml_file}111"
         )
