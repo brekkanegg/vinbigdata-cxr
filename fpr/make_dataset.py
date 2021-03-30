@@ -210,7 +210,7 @@ def make_fp_patch(false_positives):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data_dir", type=str, default="/data2/minki/kaggle/vinbigdata-cxr"
+        "--data_dir", type=str, default="/data/minki/kaggle/vinbigdata-cxr"
     )
     parser.add_argument("--label", type=int, required=True)
     opt = parser.parse_args()

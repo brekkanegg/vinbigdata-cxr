@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pickle
 from tqdm import tqdm
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, precision_recall_curve
 from sklearn.metrics import confusion_matrix
 import pprint
 import timm
@@ -87,22 +87,25 @@ class Validator(object):
 
         cls_gt_tot = np.array(cls_gt_tot)
         cls_pred_tot = np.array(cls_pred_tot)
-        tn, fp, fn, tp = confusion_matrix(
-            cls_gt_tot, cls_pred_tot > self.cfgs["meta"]["val"]["cls_th"]
-        ).ravel()
-        cls_sens = tp / (tp + fn + 1e-5)
-        cls_spec = tn / (tn + fp + 1e-5)
-        cls_auc = roc_auc_score(cls_gt_tot, cls_pred_tot)
+        # tn, fp, fn, tp = confusion_matrix(
+        #     cls_gt_tot, cls_pred_tot > self.cfgs["meta"]["val"]["cls_th"]
+        # ).ravel()
+        # cls_sens = tp / (tp + fn + 1e-5)
+        # cls_spec = tn / (tn + fp + 1e-5)
 
-        fit_weight = np.array([0.5, 0.1, 0.4])
-        fit = np.sum(np.array([cls_sens, cls_spec, cls_auc]) * fit_weight)
+        auroc = roc_auc_score(cls_gt_tot, cls_pred_tot)
+        precision, recall, threshold = precision_recall_curve(cls_gt_tot, cls_pred_tot)
+
+        # fit_weight = np.array([0.5, 0.1, 0.4])
+        # fit = np.sum(np.array([cls_sens, cls_spec, cls_auc]) * fit_weight)
 
         val_record = {
             "loss": (losses_tot / (nums_tot + 1e-5)),
-            "cls_auc": cls_auc,
-            "cls_sens": cls_sens,
-            "cls_spec": cls_spec,
-            "fit": fit,
+            "auroc": auroc,
+            "recall": recall,
+            "precision": precision,
+            "threshold": threshold,
+            # "fit": fit,
         }
 
         if self.cfgs["run"] == "val":

@@ -70,7 +70,7 @@ class Trainer(object):
         ####### Setup Train
         self.epoch, self.iter, self.resume_epoch = 0, 0, 0
         self.tot_val_record = {
-            "best": {"loss": np.inf, "cls_auc": -1, "cls_sens": -1, "fit": -1}
+            "best": {"loss": np.inf, "auroc": -1, "recall": -1, "precision": -1}
         }
 
         if self.cfgs["meta"]["train"]["resume_train"]:
@@ -182,7 +182,7 @@ class Trainer(object):
             # Save Model
             select_metric = self.cfgs["meta"]["val"]["best"]
             val_improved = False
-            if (select_metric == "cls_auc") or (select_metric == "fit"):
+            if select_metric == "auroc":
                 if val_best >= self.tot_val_record["best"][select_metric]:
                     val_improved = True
 
@@ -217,8 +217,8 @@ class Trainer(object):
             )
             self.txt_logger.write("\n")
 
-            for k in ["cls_auc", "cls_sens", "cls_spec", "fit"]:
-                self.txt_logger.write(f"{k}: {val_record[k]:.4f}  ")
+            for k in ["auroc", "recall", "precision", "threshold"]:
+                self.txt_logger.write(f"{k}: {val_record[k]}  ")
             self.txt_logger.write("\n")
             self.txt_logger.write(
                 f"best epoch: {vbest_epoch} / {self.tot_val_record['best'][select_metric]:.4f}"
@@ -226,11 +226,11 @@ class Trainer(object):
             self.txt_logger.write("\n", txt_write=True)
             self.txt_logger.write("\n", txt_write=False)
 
-            metric_keys = ["cls_auc", "cls_sens", "cls_spec", "fit"]
-            self.tb_writer.write_scalars(
-                {"metrics": {f"{key}": val_record[key] for key in metric_keys}},
-                self.epoch,
-            )
+            # metric_keys = ["auroc", "recall", "precision"]
+            # self.tb_writer.write_scalars(
+            #     {"metrics": {f"{key}": val_record[key] for key in metric_keys}},
+            #     self.epoch,
+            # )
 
             self.tb_writer.write_scalars({"loss": {"v loss": vloss}}, self.epoch)
 
