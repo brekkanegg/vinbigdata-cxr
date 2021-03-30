@@ -707,7 +707,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument(
-        "--batch-size", type=int, default=16, help="total batch size for all GPUs"
+        "--batch-size", type=int, default=10, help="total batch size for all GPUs"
     )
     parser.add_argument(
         "--img-size",
