@@ -185,6 +185,47 @@ def test(
 
         # out: [n,6] (xyxy, conf, label)
 
+        # class: (0.95, 0.99)
+        conf_floor_ceil = {
+            0: (0.818652, 0.851055),
+            1: (0.114014, 0.234873),
+            2: (0.301160, 0.484121),
+            3: (0.819141, 0.865176),
+            4: (0.179019, 0.267763),
+            5: (0.172272, 0.294026),
+            6: (0.181115, 0.274643),
+            7: (0.188965, 0.288526),
+            8: (0.344629, 0.612666),
+            9: (0.118762, 0.311333),
+            10: (0.522824, 0.738939),
+            11: (0.352366, 0.571086),
+            12: (0.145410, 0.453828),
+            13: (0.411651, 0.638970),
+            # '14': (0.982422, 0.983398)
+        }
+
+        def conf_massage(pred):
+            unique_labels = pred[:, -1].unique().tolist()
+            pred_massaged = []
+            for c in unique_labels:
+                c = int(c)
+                pred_c = pred[pred[:, -1] == c]
+                if c >= 14:
+                    pred_massaged.append(pred_c)
+                    continue
+
+                c_floor, c_ceil = conf_floor_ceil[c][0], conf_floor_ceil[c][1]
+                cond = (pred_c[:, -2] >= c_floor) & (pred_c[:, -2] < c_ceil)
+                pred_c[:, -2][cond] = c_ceil
+
+                massage_num = torch.sum(cond)
+                if massage_num:
+                    print(f"{c} class {massage_num} bbox massaged!")
+                pred_massaged.append(pred_c)
+
+            pred_massaged = torch.cat(pred_massaged, axis=0)
+            return pred_massaged
+
         # Statistics per image
         for si, pred in enumerate(out):
 
@@ -195,8 +236,13 @@ def test(
             seen += 1
 
             # FIXME: apply conf_floor
-            pred = pred[pred[:, -1] == opt.target_label]
-            pred[:, -2][pred[:, -2] > opt.conf_floor] = 0.999
+            # TODO: for each class
+            # pred = conf_massage(pred)
+
+            # pred = pred[pred[:, -1] == opt.target_label]
+            # pred[:, -2][
+            #     (pred[:, -2] > opt.conf_floor) & (pred[:, -2] < opt.conf_ceil)
+            # ] = opt.conf_ceil
 
             ##############
 
@@ -460,10 +506,22 @@ if __name__ == "__main__":
     )  # 'data/coco128.yaml'
 
     parser.add_argument(
-        "--conf_floor",
-        type=float,
-        help="if more than floor conf go to 0.99",
-    )  # 'data/coco128.yaml'
+        "--conf-massage",
+        action="store_true",
+        help="confidence massage",
+    )
+
+    # parser.add_argument(
+    #     "--conf_floor",
+    #     type=float,
+    #     help="if more than floor conf go to 0.99",
+    # )  # 'data/coco128.yaml'
+
+    # parser.add_argument(
+    #     "--conf_ceil",
+    #     type=float,
+    #     help="if more than floor conf go to 0.99",
+    # )  # 'data/coco128.yaml'
 
     parser.add_argument(
         "--fold",

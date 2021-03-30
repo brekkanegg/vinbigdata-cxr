@@ -7,7 +7,7 @@ opts:
   learning_rate: 1e-2
   beta1: 0.9
   beta2: 0.999
-  scheduler: cosineWR #cosineWR #Null
+  scheduler: cosineW #cosineWR #Null
   warmup_epoch: 3
   weight_decay: 5e-6
 loss:

@@ -218,6 +218,7 @@ def train(hyp, opt, device, tb_writer=None):
     start_epoch, best_fitness = 0, 0.0
 
     # FIXME:
+    print("\n\n Not loading optimizer!!!!!")
     # if pretrained:
     #     # Optimizer
     #     if ckpt["optimizer"] is not None:

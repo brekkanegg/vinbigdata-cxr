@@ -72,7 +72,6 @@ class WandbLogger:
                     name=name,
                     job_type=job_type,
                     id=run_id,
-                    allow_val_change=True,  # FIXME:
                 )
                 if not wandb.run
                 else wandb.run
