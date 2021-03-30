@@ -2,10 +2,11 @@ import os, sys
 import time
 import random
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch.cuda.amp import autocast, GradScaler
-
+from sklearn.metrics import confusion_matrix, PrecisionRecallDisplay
 import pickle
 import datetime
 
@@ -205,6 +206,13 @@ class Trainer(object):
                 self.tot_val_record["best"]["epoch"] = self.epoch + 1
                 self.tot_val_record["best"]["iteration"] = self.iter
                 self.endurance = 0
+
+                prth = pd.DataFrame(columns=["precision", "recall", "threshold"])
+                prth["precision"] = val_record["precision"]
+                prth["recall"] = val_record["recall"]
+                prth["threshold"] = val_record["threshold"]
+                prth.to_csv(f'{self.cfgs["save_dir"]}/prth_df.csv', index=None)
+
             else:
                 self.endurance += 1
 
@@ -217,8 +225,14 @@ class Trainer(object):
             )
             self.txt_logger.write("\n")
 
-            for k in ["auroc", "recall", "precision", "threshold"]:
+            for k in ["auroc"]:
                 self.txt_logger.write(f"{k}: {val_record[k]}  ")
+            for k in ["recall", "precision", "threshold"]:
+                self.txt_logger.write(f"\n{k}: ")
+                # interval = np.ceil(len(val_record[k]) / 5)
+                for i in val_record[k][:10]:
+                    self.txt_logger.write(f"{i:.4f}  ")
+
             self.txt_logger.write("\n")
             self.txt_logger.write(
                 f"best epoch: {vbest_epoch} / {self.tot_val_record['best'][select_metric]:.4f}"
