@@ -72,7 +72,7 @@ class Validator(object):
         self.model.eval()  # batchnorm uses moving mean/variance instead of mini-batch mean/variance
         with torch.no_grad():
             for data in self.val_loader:
-                print(data["fp"])
+                # print(data["fp"])
                 img = data["img"].permute(0, 3, 1, 2).to(self.device)
 
                 logits = self.model(img)

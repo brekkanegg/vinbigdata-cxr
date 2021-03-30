@@ -96,21 +96,41 @@ class PATCH(Dataset):
         self.transform = transform
         self.label = self.cfgs["meta"]["inputs"]["label"]
 
-        fps = glob.glob(self.data_dir + f"/patch_256/{self.label}/*_fp_*.png")
-        gts = glob.glob(self.data_dir + f"/patch_256/{self.label}/*_gt_*.png")
+        try:
+            with open(
+                self.data_dir + f"/patch_256/{self.label}/fold_dict.pickle", "rb"
+            ) as f:
+                fold_dict = pickle.load(f)
+        except Exception as e:
+            print(e)
+            fps = glob.glob(self.data_dir + f"/patch_256/{self.label}/*_fp_*.png")
+            gts = glob.glob(self.data_dir + f"/patch_256/{self.label}/*_gt_*.png")
+            if len(fps) == 0 or len(gts) == 0:
+                raise ("run make_dataset.pt first!")
+            train_fps, val_fps = train_test_split(fps, test_size=0.1)
+            train_gts, val_gts = train_test_split(gts, test_size=0.1)
+            fold_dict = {
+                "train_fps": train_fps,
+                "val_fps": val_fps,
+                "train_gts": train_gts,
+                "val_gts": val_gts,
+            }
+            with open(
+                self.data_dir + f"/patch_256/{self.label}/fold_dict.pickle", "wb"
+            ) as f:
+                pickle.dump(fold_dict, f)
 
         # random.shuffle(fps)
         # random.shuffle(gts)
         # train_fps, val_fps = fps[: int(len(fps) * 0.9)], fps[int(len(fps) * 0.9) :]
         # train_gts, val_gts = gts[: int(len(gts) * 0.9)], gts[int(len(gts) * 0.9) :]
 
-        train_fps, val_fps = train_test_split(fps, test_size=0.1)
-        train_gts, val_gts = train_test_split(gts, test_size=0.1)
         if self.mode == "train":
-            self.fps, self.gts = train_fps, train_gts
-
+            self.fps = fold_dict["train_fps"]
+            self.gts = fold_dict["train_gts"]
         elif self.mode == "val":
-            self.fps, self.gts = val_fps, val_gts
+            self.fps = fold_dict["val_fps"]
+            self.gts = fold_dict["val_gts"]
             self.tot_files = self.fps + self.gts
 
     def __len__(self):
