@@ -11,8 +11,25 @@ from glob import glob
 
 
 def lungseg_filtering(strings, uid, vote=False):
-
+    outliers = [
+        "7e5b17cc5c955fc4f8e9a626ab69295e",
+        "285becd123b1dd66f5ce5e51bce073a4",
+        "2127bbf73b1d0f150ca12bfa5ca2b91d",
+        "7158cb1a21c2af6490567b0fe1dfaae0",
+        "5118cbe9894006f58312565294e85556",
+        "12202997d3fc0d506d2514a4c1995d15",
+        "83918012739ab2906d692171f66a4dcc",
+        "a3b5403784ffb7faa00003009aaa1d45",
+        "b4e78fa47b3675c8de1ceae320bc4bf9",
+        "cd8b2bb9706366aeaa560d62d888d4c0",
+        "d32de0af32631052017592ebaaa11ce6",
+        "d62af23bce04158a811760245247521f",
+        "dd14fbccb38c064bdacc33391d8cca9e",
+        "f599fe9d73fb3cc607a03fb258b7e198",
+    ]
     try:
+        if uid in outliers:
+            return strings, [], None
         lungseg = cv2.imread(lungseg_dir + f"/{uid}_abdomen.png") // 255
         flags = [True] * len(strings)
         for idx, string in enumerate(strings):
@@ -28,22 +45,18 @@ def lungseg_filtering(strings, uid, vote=False):
                             print("Lungseg out", string)
                         flags[idx] = False
                         continue
-
                 except:
                     if RULEOUT_VERBOSE:
                         print("Voting failed", string)
-
             if lungseg[pcy, pcx, 0] == 0:
                 if RULEOUT_VERBOSE:
                     print("Lungseg out", string)
                 flags[idx] = False
-
         return (
             [x for (_idx, x) in enumerate(strings) if flags[_idx]],
             [x for (_idx, x) in enumerate(strings) if not flags[_idx]],
             lungseg,
         )
-
     except Exception as e:
         print(e)
         return strings, [], None
