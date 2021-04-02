@@ -208,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--source",
         type=str,
-        default="/data/minki/kaggle/vinbigdata-cxr/png_1024l/test",
+        default="/data2/minki/kaggle/vinbigdata-cxr/png_1024l/test",
         help="source",  # "data/images"
     )  # file/folder, 0 for webcam
     parser.add_argument(
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     parser.add_argument("--update", action="store_true", help="update all models")
     parser.add_argument(
         "--project",
-        default="/data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect",
+        default="/data2/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect",
         help="save results to project/name",
     )
     parser.add_argument(

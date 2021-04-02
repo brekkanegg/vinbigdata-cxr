@@ -113,12 +113,12 @@ def submit(opt):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--server", type=str, default="53")
+    parser.add_argument("--server", type=str, default="51")
     parser.add_argument("--push", action="store_true")
     parser.add_argument(
         "--label_dir",
         type=str,
-        default="/data/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/fold0_0326/labels",
+        default="/data2/minki/kaggle/vinbigdata-cxr/yolov5/runs/detect/fold0_0326/labels",
     )
     parser.add_argument("--submit_name", type=str, required=True)
 
