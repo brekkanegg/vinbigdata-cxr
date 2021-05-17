@@ -1,2 +1,2 @@
 # vindr-cxr
-kaggle vinDr-cxr 
+kaggle-vinbigdata-cxr  
