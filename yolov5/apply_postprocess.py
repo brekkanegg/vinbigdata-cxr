@@ -9,43 +9,44 @@ from pprint import pprint
 from ensemble_boxes import weighted_boxes_fusion
 from glob import glob
 
-def calc_iou(bbox_a, bbox_b):
-    """
-    :param a: bbox list [min_y, min_x, max_y, max_x]
-    :param b: bbox list [min_y, min_x, max_y, max_x]
-    :return:
-    """
-    size_a = (bbox_a[2] - bbox_a[0]) * (bbox_a[3] - bbox_a[1])
-    size_b = (bbox_b[2] - bbox_b[0]) * (bbox_b[3] - bbox_b[1])
-
-    min_ab_y = max(bbox_a[0], bbox_b[0])
-    min_ab_x = max(bbox_a[1], bbox_b[1])
-    max_ab_y = min(bbox_a[2], bbox_b[2])
-    max_ab_x = min(bbox_a[3], bbox_b[3])
-
-    inter_ab = max(0, max_ab_y - min_ab_y) * max(0, max_ab_x - min_ab_x)
-
-    return inter_ab / (size_a + size_b - inter_ab)
-
 
 def nms_svcat(bboxes_coord, bboxes_cat, bboxes_score, iou_thr=0.4):
+    def _calc_iou(bbox_a, bbox_b):
+        """
+        :param a: bbox list [min_y, min_x, max_y, max_x]
+        :param b: bbox list [min_y, min_x, max_y, max_x]
+        :return:
+        """
+        size_a = (bbox_a[2] - bbox_a[0]) * (bbox_a[3] - bbox_a[1])
+        size_b = (bbox_b[2] - bbox_b[0]) * (bbox_b[3] - bbox_b[1])
+
+        min_ab_y = max(bbox_a[0], bbox_b[0])
+        min_ab_x = max(bbox_a[1], bbox_b[1])
+        max_ab_y = min(bbox_a[2], bbox_b[2])
+        max_ab_x = min(bbox_a[3], bbox_b[3])
+
+        inter_ab = max(0, max_ab_y - min_ab_y) * max(0, max_ab_x - min_ab_x)
+
+        return inter_ab / (size_a + size_b - inter_ab)
+
     order = bboxes_score.argsort()[::-1]
-    keep = [True] * len(order)
+    keep = np.array([True] * len(order))
 
     for i in range(len(order) - 1):
         for j in range(i + 1, len(order)):
             if bboxes_cat[order[i]] != bboxes_cat[order[j]]:
                 continue
 
-            ov = calc_iou(bboxes_coord[order[i]], bboxes_coord[order[j]])
+            ov = _calc_iou(bboxes_coord[order[i]], bboxes_coord[order[j]])
             if ov > iou_thr:
                 keep[order[j]] = False
 
-    bboxes_coord = [bb for (idx, bb) in enumerate(bboxes_coord) if keep[idx]]
-    bboxes_cat = [bb for (idx, bb) in enumerate(bboxes_cat) if keep[idx]]
-    bboxes_score = [bb for (idx, bb) in enumerate(bboxes_score) if keep[idx]]
+    bboxes_coord = bboxes_coord[keep]
+    bboxes_cat = bboxes_cat[keep].astype(int)
+    bboxes_score = bboxes_score[keep]
 
     return bboxes_coord, bboxes_cat, bboxes_score
+
 
 def lungseg_filtering(strings, uid, vote=False):
     outliers = [
@@ -185,7 +186,9 @@ def rule_out_trivial(strings):
     return [x for (_idx, x) in enumerate(strings) if flags[_idx]]
 
 
-def apply_classwise_wbf(strings, cids=["10", "11", "13"], iou_thrs=[0.15, 0.15, 0.25], fn='nms'):
+def apply_classwise_wbf(
+    strings, cids=["10", "11", "13"], iou_thrs=[0.15, 0.15, 0.25], fn="nms"
+):
     if len(strings) < 1:
         return strings
 
@@ -225,10 +228,12 @@ def apply_classwise_wbf(strings, cids=["10", "11", "13"], iou_thrs=[0.15, 0.15, 
         boxes = _centroid2xyxy(boxes)
 
         # FIXME:
-        if fn == 'nms':
-            boxes, lbls, scores = nms_svcat(boxes, lbls, scores, iou_thr=iou_thr)
-        elif fn == 'wbf':
-            boxes, scores, lbls = weighted_boxes_fusion([boxes], [scores], [lbls], iou_thr=iou_thr)  # , conf_type="box_and_model_avg")
+        if fn == "nms":
+            boxes, lbls, scores = nms_svcat(boxes, lbls, scores[:, 0], iou_thr=iou_thr)
+        elif fn == "wbf":
+            boxes, scores, lbls = weighted_boxes_fusion(
+                [boxes], [scores], [lbls], iou_thr=iou_thr
+            )  # , conf_type="box_and_model_avg")
 
         boxes = _xyxy2centroid(boxes)
         aft_wbf = np.concatenate(
@@ -252,12 +257,16 @@ if __name__ == "__main__":
     parser.add_argument("--src", type=str, required=True)
     parser.add_argument("--dst", type=str, required=True)
     parser.add_argument("--server", type=str, default="51")
-    parser.add_argument("--wbf_all", action="store_true")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--exist_ok", action="store_true")
+
+    parser.add_argument("--nms_all", action="store_true")
+    parser.add_argument("--strict_nms", action="store_true")
+
     opt = parser.parse_args()
     global RULEOUT_VERBOSE
     RULEOUT_VERBOSE = 1 if opt.verbose else 0
-    if opt.wbf_all:
+    if opt.nms_all:
         cids = [f"{i}" for i in range(14)]
         iou_thrs = [
             0.4,
@@ -275,6 +284,23 @@ if __name__ == "__main__":
             0.4,
             0.25,
         ]
+        if opt.strict_nms:
+            iou_thrs = [
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.05,
+                0.05,
+                0.25,
+                0.15,
+            ]
 
     else:
         cids = ["10", "11", "13"]
@@ -294,8 +320,8 @@ if __name__ == "__main__":
     time.sleep(1)
     target_labels = glob(f"{opt.src}/*.txt")
     path_to_revised = opt.dst
-    os.makedirs(opt.dst, exist_ok=False)
-    seg_out, rule_out, clswise_wbf = True, False, True
+    os.makedirs(opt.dst, exist_ok=opt.exist_ok)
+    seg_out, rule_out, clswise_wbf = True, True, True
     nb_orig, nb_boxes, nb_segout, nb_ruledout, nb_wbfeffect = 0, 0, 0, 0, 0
     bef_cls_boxes = {str(cid): 0 for cid in range(16)}
     aft_cls_boxes = {str(cid): 0 for cid in range(16)}
